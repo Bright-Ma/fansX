@@ -1,0 +1,39 @@
+syntax = "proto3";
+package AuthRpc;
+option go_package = "./AuthRpc";
+
+service AuthService{
+  rpc Authentication(AuthenticationReq) returns (AuthenticationResp){}//鉴权
+  rpc Refresh(RefreshReq) returns(RefreshResp){}//续约session
+  rpc Create(CreateReq) returns (CreateResp){} //创建session和token
+}
+
+message AuthenticationReq{
+  string sessionId = 1;
+  string token = 2;
+}
+
+message AuthenticationResp{
+  bool pass = 1;
+  string token = 2;
+}
+
+message RefreshReq{
+  string sessionId = 1;
+}
+
+message RefreshResp{
+  bool ok = 1;
+  string token = 2;
+}
+
+message CreateReq{
+  int64 userId =1;
+}
+
+message CreateResp{
+  bool ok = 1;
+  string sessionId = 2;
+  string token = 3;
+}
+
