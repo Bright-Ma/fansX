@@ -3,24 +3,20 @@ package main
 import (
 	"log/slog"
 	"os"
+	"time"
 )
 
-type Handler struct {
-}
-
-//func (h *Handler) Enabled(ctx, context.Context, level slog.Level) bool {
-//	return true
-//}
-
 func main() {
-
-	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	file, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE, 0766)
+	if err != nil {
+		panic(err.Error())
+	}
+	l := slog.New(slog.NewJSONHandler(file, &slog.HandlerOptions{
 		AddSource: true,
 		Level:     slog.LevelInfo,
 	}))
-	slog.SetDefault(l)
-	slog.Info("it is a test")
-
-	return
-
+	for i := 0; i < 10000; i++ {
+		time.Sleep(time.Millisecond * 10)
+		l.Info("it is a test")
+	}
 }
