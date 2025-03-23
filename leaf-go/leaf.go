@@ -1,13 +1,17 @@
 package leaf_go
 
 import (
+	"bilibili/leaf-go/segment"
+	"bilibili/leaf-go/snowflake"
+	"context"
 	"errors"
-	"leaf-go/segment"
+	"time"
 )
 
 type Config struct {
-	Model         int
-	SegmentConfig segment.Config
+	Model           int
+	SegmentConfig   *segment.Config
+	SnowflakeConfig *snowflake.Config
 }
 
 var (
@@ -19,11 +23,13 @@ type Core interface {
 	GetId() int64
 }
 
-func InitLeaf(c *Config) (Core, error) {
+func Init(c *Config) (Core, error) {
 	if c.Model == Segment {
-		return segment.NewCreator(&c.SegmentConfig)
+		return segment.NewCreator(c.SegmentConfig)
 	} else if c.Model == Snowflake {
-		return nil, nil
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		return snowflake.NewCreator(timeout, c.SnowflakeConfig)
 	}
 
 	return nil, errors.New("please select id model")
