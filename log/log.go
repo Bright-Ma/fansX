@@ -1,15 +1,14 @@
-package log
+package mlog
 
 import (
 	"log/slog"
 	"os"
 )
 
-func Init() *slog.Logger {
+func Init(name string) *slog.Logger {
 	l := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource: true,
 		Level:     slog.LevelInfo,
 	}))
-	return l
-
+	return l.With("ServiceName", name).WithGroup("detail")
 }

@@ -20,7 +20,7 @@ var (
 )
 
 type Core interface {
-	GetId() int64
+	GetId() (int64, bool)
 }
 
 func Init(c *Config) (Core, error) {

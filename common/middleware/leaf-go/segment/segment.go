@@ -2,7 +2,7 @@ package segment
 
 import "gorm.io/gorm"
 
-func (c *Creator) GetId() int64 {
+func (c *Creator) GetId() (int64, bool) {
 	for {
 		c.mu.Lock()
 		if c.old.nextId == c.old.maxId+1 && c.new == nil {
@@ -21,7 +21,7 @@ func (c *Creator) GetId() int64 {
 	}
 	res := c.old.nextId
 	c.old.nextId++
-	return res
+	return res, true
 }
 
 func (c *Creator) preApplication() {

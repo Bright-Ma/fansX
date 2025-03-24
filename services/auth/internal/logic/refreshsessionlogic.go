@@ -61,7 +61,7 @@ func (l *RefreshSessionLogic) RefreshSession(in *AuthRpc.RefreshSessionReq) (*Au
 
 	tokenStr, err := token.SignedString(l.svcCtx.Secret)
 	if err != nil {
-		return &AuthRpc.RefreshResp{}, nil
+		return &AuthRpc.RefreshSessionResp{}, nil
 	}
 
 	return &AuthRpc.RefreshSessionResp{

@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func (c *Creator) GetId() int64 {
-	return int64(c.snowNode.Generate())
+func (c *Creator) GetId() (int64, bool) {
+	return int64(c.snowNode.Generate()), true
 }
 
 func (c *Creator) Lock() {
