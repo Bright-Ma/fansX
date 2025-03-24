@@ -13,21 +13,21 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type CreateLogic struct {
+type CreateVoucherLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
-func NewCreateLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateLogic {
-	return &CreateLogic{
+func NewCreateVoucherLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateVoucherLogic {
+	return &CreateVoucherLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
 }
 
-func (l *CreateLogic) Create(in *AuthRpc.CreateReq) (*AuthRpc.CreateResp, error) {
+func (l *CreateVoucherLogic) CreateVoucher(in *AuthRpc.CreateVoucherReq) (*AuthRpc.CreateVoucherResp, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, svc.JwtClaims{
 		Userid: in.UserId,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -56,7 +56,7 @@ func (l *CreateLogic) Create(in *AuthRpc.CreateReq) (*AuthRpc.CreateResp, error)
 		return nil, err
 	}
 
-	return &AuthRpc.CreateResp{
+	return &AuthRpc.CreateVoucherResp{
 		Ok:        true,
 		SessionId: sessionId,
 		Token:     tokenStr,

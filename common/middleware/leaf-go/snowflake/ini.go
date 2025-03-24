@@ -1,7 +1,7 @@
 package snowflake
 
 import (
-	"bilibili/util"
+	"bilibili/common/util"
 	"context"
 	"errors"
 	"github.com/bwmarrin/snowflake"

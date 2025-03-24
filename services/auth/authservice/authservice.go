@@ -16,15 +16,18 @@ import (
 type (
 	AuthenticationReq  = AuthRpc.AuthenticationReq
 	AuthenticationResp = AuthRpc.AuthenticationResp
-	CreateReq          = AuthRpc.CreateReq
-	CreateResp         = AuthRpc.CreateResp
-	RefreshReq         = AuthRpc.RefreshReq
-	RefreshResp        = AuthRpc.RefreshResp
+	CreateVoucherReq   = AuthRpc.CreateVoucherReq
+	CreateVoucherResp  = AuthRpc.CreateVoucherResp
+	DeleteSessionReq   = AuthRpc.DeleteSessionReq
+	DeleteSessionResp  = AuthRpc.DeleteSessionResp
+	RefreshSessionReq  = AuthRpc.RefreshSessionReq
+	RefreshSessionResp = AuthRpc.RefreshSessionResp
 
 	AuthService interface {
 		Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*AuthenticationResp, error)
-		Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error)
-		Create(ctx context.Context, in *CreateReq, opts ...grpc.CallOption) (*CreateResp, error)
+		RefreshSession(ctx context.Context, in *RefreshSessionReq, opts ...grpc.CallOption) (*RefreshSessionResp, error)
+		DeleteSession(ctx context.Context, in *DeleteSessionReq, opts ...grpc.CallOption) (*DeleteSessionResp, error)
+		CreateVoucher(ctx context.Context, in *CreateVoucherReq, opts ...grpc.CallOption) (*CreateVoucherResp, error)
 	}
 
 	defaultAuthService struct {
@@ -43,12 +46,17 @@ func (m *defaultAuthService) Authentication(ctx context.Context, in *Authenticat
 	return client.Authentication(ctx, in, opts...)
 }
 
-func (m *defaultAuthService) Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error) {
+func (m *defaultAuthService) RefreshSession(ctx context.Context, in *RefreshSessionReq, opts ...grpc.CallOption) (*RefreshSessionResp, error) {
 	client := AuthRpc.NewAuthServiceClient(m.cli.Conn())
-	return client.Refresh(ctx, in, opts...)
+	return client.RefreshSession(ctx, in, opts...)
 }
 
-func (m *defaultAuthService) Create(ctx context.Context, in *CreateReq, opts ...grpc.CallOption) (*CreateResp, error) {
+func (m *defaultAuthService) DeleteSession(ctx context.Context, in *DeleteSessionReq, opts ...grpc.CallOption) (*DeleteSessionResp, error) {
 	client := AuthRpc.NewAuthServiceClient(m.cli.Conn())
-	return client.Create(ctx, in, opts...)
+	return client.DeleteSession(ctx, in, opts...)
+}
+
+func (m *defaultAuthService) CreateVoucher(ctx context.Context, in *CreateVoucherReq, opts ...grpc.CallOption) (*CreateVoucherResp, error) {
+	client := AuthRpc.NewAuthServiceClient(m.cli.Conn())
+	return client.CreateVoucher(ctx, in, opts...)
 }

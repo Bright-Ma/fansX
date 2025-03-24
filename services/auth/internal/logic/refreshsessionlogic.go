@@ -2,32 +2,32 @@ package logic
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"time"
 
 	"auth/internal/svc"
 	"auth/proto/AuthRpc"
 
+	"encoding/json"
+	"errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type RefreshLogic struct {
+type RefreshSessionLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
 }
 
-func NewRefreshLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RefreshLogic {
-	return &RefreshLogic{
+func NewRefreshSessionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RefreshSessionLogic {
+	return &RefreshSessionLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
 }
 
-func (l *RefreshLogic) Refresh(in *AuthRpc.RefreshReq) (*AuthRpc.RefreshResp, error) {
+func (l *RefreshSessionLogic) RefreshSession(in *AuthRpc.RefreshSessionReq) (*AuthRpc.RefreshSessionResp, error) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	ok, err := l.svcCtx.RDB.Expire(timeout, in.SessionId, time.Hour*24*7).Result()
 	cancel()
@@ -64,7 +64,7 @@ func (l *RefreshLogic) Refresh(in *AuthRpc.RefreshReq) (*AuthRpc.RefreshResp, er
 		return &AuthRpc.RefreshResp{}, nil
 	}
 
-	return &AuthRpc.RefreshResp{
+	return &AuthRpc.RefreshSessionResp{
 		Ok:    true,
 		Token: tokenStr,
 	}, nil

@@ -1,9 +1,9 @@
 package main
 
 import (
-	leaf "bilibili/leaf-go"
-	"bilibili/leaf-go/segment"
-	"bilibili/leaf-go/snowflake"
+	leaf "bilibili/common/middleware/leaf-go"
+	"bilibili/common/middleware/leaf-go/segment"
+	"bilibili/common/middleware/leaf-go/snowflake"
 	"fmt"
 	"sync"
 	"time"

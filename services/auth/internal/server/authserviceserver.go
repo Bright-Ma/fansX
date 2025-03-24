@@ -28,12 +28,17 @@ func (s *AuthServiceServer) Authentication(ctx context.Context, in *AuthRpc.Auth
 	return l.Authentication(in)
 }
 
-func (s *AuthServiceServer) Refresh(ctx context.Context, in *AuthRpc.RefreshReq) (*AuthRpc.RefreshResp, error) {
-	l := logic.NewRefreshLogic(ctx, s.svcCtx)
-	return l.Refresh(in)
+func (s *AuthServiceServer) RefreshSession(ctx context.Context, in *AuthRpc.RefreshSessionReq) (*AuthRpc.RefreshSessionResp, error) {
+	l := logic.NewRefreshSessionLogic(ctx, s.svcCtx)
+	return l.RefreshSession(in)
 }
 
-func (s *AuthServiceServer) Create(ctx context.Context, in *AuthRpc.CreateReq) (*AuthRpc.CreateResp, error) {
-	l := logic.NewCreateLogic(ctx, s.svcCtx)
-	return l.Create(in)
+func (s *AuthServiceServer) DeleteSession(ctx context.Context, in *AuthRpc.DeleteSessionReq) (*AuthRpc.DeleteSessionResp, error) {
+	l := logic.NewDeleteSessionLogic(ctx, s.svcCtx)
+	return l.DeleteSession(in)
+}
+
+func (s *AuthServiceServer) CreateVoucher(ctx context.Context, in *AuthRpc.CreateVoucherReq) (*AuthRpc.CreateVoucherResp, error) {
+	l := logic.NewCreateVoucherLogic(ctx, s.svcCtx)
+	return l.CreateVoucher(in)
 }

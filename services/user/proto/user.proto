@@ -6,5 +6,38 @@ service UserService{
   rpc Register()returns{}
   rpc Login()returns{}
   rpc Logout()returns{}
+  rpc BindPhone()returns{}
+}
+
+message RegisterReq{
+
+}
+
+message RegisterResp{
+
+}
+
+message LoginReq{
+
+}
+
+message LoginResp{
+
+}
+
+message LogoutReq{
+
+}
+
+message LogoutResp{
+
+}
+
+message BindPhoneReq{
+
+}
+
+message BindPhoneResp{
+  
 }
 

@@ -4,8 +4,9 @@ option go_package = "./AuthRpc";
 
 service AuthService{
   rpc Authentication(AuthenticationReq) returns (AuthenticationResp){}//鉴权
-  rpc Refresh(RefreshReq) returns(RefreshResp){}//续约session
-  rpc Create(CreateReq) returns (CreateResp){} //创建session和token
+  rpc RefreshSession(RefreshSessionReq) returns(RefreshSessionResp){}//续约session
+  rpc DeleteSession(DeleteSessionReq) returns (DeleteSessionResp){}//删除session
+  rpc CreateVoucher(CreateVoucherReq) returns (CreateVoucherResp){} //创建session和token
 }
 
 message AuthenticationReq{
@@ -18,20 +19,27 @@ message AuthenticationResp{
   string token = 2;
 }
 
-message RefreshReq{
+message RefreshSessionReq{
   string sessionId = 1;
 }
 
-message RefreshResp{
+message DeleteSessionReq{
+  string sessionId=1;
+}
+
+message DeleteSessionResp{
+}
+
+message RefreshSessionResp{
   bool ok = 1;
   string token = 2;
 }
 
-message CreateReq{
+message CreateVoucherReq{
   int64 userId =1;
 }
 
-message CreateResp{
+message CreateVoucherResp{
   bool ok = 1;
   string sessionId = 2;
   string token = 3;

@@ -1,8 +1,8 @@
 package leaf_go
 
 import (
-	"bilibili/leaf-go/segment"
-	"bilibili/leaf-go/snowflake"
+	"bilibili/common/middleware/leaf-go/segment"
+	"bilibili/common/middleware/leaf-go/snowflake"
 	"context"
 	"errors"
 	"time"

@@ -20,8 +20,9 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	AuthService_Authentication_FullMethodName = "/AuthRpc.AuthService/Authentication"
-	AuthService_Refresh_FullMethodName        = "/AuthRpc.AuthService/Refresh"
-	AuthService_Create_FullMethodName         = "/AuthRpc.AuthService/Create"
+	AuthService_RefreshSession_FullMethodName = "/AuthRpc.AuthService/RefreshSession"
+	AuthService_DeleteSession_FullMethodName  = "/AuthRpc.AuthService/DeleteSession"
+	AuthService_CreateVoucher_FullMethodName  = "/AuthRpc.AuthService/CreateVoucher"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -29,8 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthServiceClient interface {
 	Authentication(ctx context.Context, in *AuthenticationReq, opts ...grpc.CallOption) (*AuthenticationResp, error)
-	Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error)
-	Create(ctx context.Context, in *CreateReq, opts ...grpc.CallOption) (*CreateResp, error)
+	RefreshSession(ctx context.Context, in *RefreshSessionReq, opts ...grpc.CallOption) (*RefreshSessionResp, error)
+	DeleteSession(ctx context.Context, in *DeleteSessionReq, opts ...grpc.CallOption) (*DeleteSessionResp, error)
+	CreateVoucher(ctx context.Context, in *CreateVoucherReq, opts ...grpc.CallOption) (*CreateVoucherResp, error)
 }
 
 type authServiceClient struct {
@@ -51,20 +53,30 @@ func (c *authServiceClient) Authentication(ctx context.Context, in *Authenticati
 	return out, nil
 }
 
-func (c *authServiceClient) Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error) {
+func (c *authServiceClient) RefreshSession(ctx context.Context, in *RefreshSessionReq, opts ...grpc.CallOption) (*RefreshSessionResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RefreshResp)
-	err := c.cc.Invoke(ctx, AuthService_Refresh_FullMethodName, in, out, cOpts...)
+	out := new(RefreshSessionResp)
+	err := c.cc.Invoke(ctx, AuthService_RefreshSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authServiceClient) Create(ctx context.Context, in *CreateReq, opts ...grpc.CallOption) (*CreateResp, error) {
+func (c *authServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionReq, opts ...grpc.CallOption) (*DeleteSessionResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateResp)
-	err := c.cc.Invoke(ctx, AuthService_Create_FullMethodName, in, out, cOpts...)
+	out := new(DeleteSessionResp)
+	err := c.cc.Invoke(ctx, AuthService_DeleteSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CreateVoucher(ctx context.Context, in *CreateVoucherReq, opts ...grpc.CallOption) (*CreateVoucherResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateVoucherResp)
+	err := c.cc.Invoke(ctx, AuthService_CreateVoucher_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,8 +88,9 @@ func (c *authServiceClient) Create(ctx context.Context, in *CreateReq, opts ...g
 // for forward compatibility.
 type AuthServiceServer interface {
 	Authentication(context.Context, *AuthenticationReq) (*AuthenticationResp, error)
-	Refresh(context.Context, *RefreshReq) (*RefreshResp, error)
-	Create(context.Context, *CreateReq) (*CreateResp, error)
+	RefreshSession(context.Context, *RefreshSessionReq) (*RefreshSessionResp, error)
+	DeleteSession(context.Context, *DeleteSessionReq) (*DeleteSessionResp, error)
+	CreateVoucher(context.Context, *CreateVoucherReq) (*CreateVoucherResp, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -91,11 +104,14 @@ type UnimplementedAuthServiceServer struct{}
 func (UnimplementedAuthServiceServer) Authentication(context.Context, *AuthenticationReq) (*AuthenticationResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Authentication not implemented")
 }
-func (UnimplementedAuthServiceServer) Refresh(context.Context, *RefreshReq) (*RefreshResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
+func (UnimplementedAuthServiceServer) RefreshSession(context.Context, *RefreshSessionReq) (*RefreshSessionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshSession not implemented")
 }
-func (UnimplementedAuthServiceServer) Create(context.Context, *CreateReq) (*CreateResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
+func (UnimplementedAuthServiceServer) DeleteSession(context.Context, *DeleteSessionReq) (*DeleteSessionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
+}
+func (UnimplementedAuthServiceServer) CreateVoucher(context.Context, *CreateVoucherReq) (*CreateVoucherResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateVoucher not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -136,38 +152,56 @@ func _AuthService_Authentication_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RefreshReq)
+func _AuthService_RefreshSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshSessionReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).Refresh(ctx, in)
+		return srv.(AuthServiceServer).RefreshSession(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Refresh_FullMethodName,
+		FullMethod: AuthService_RefreshSession_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Refresh(ctx, req.(*RefreshReq))
+		return srv.(AuthServiceServer).RefreshSession(ctx, req.(*RefreshSessionReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateReq)
+func _AuthService_DeleteSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSessionReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).Create(ctx, in)
+		return srv.(AuthServiceServer).DeleteSession(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthService_Create_FullMethodName,
+		FullMethod: AuthService_DeleteSession_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Create(ctx, req.(*CreateReq))
+		return srv.(AuthServiceServer).DeleteSession(ctx, req.(*DeleteSessionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CreateVoucher_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateVoucherReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CreateVoucher(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CreateVoucher_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CreateVoucher(ctx, req.(*CreateVoucherReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -184,12 +218,16 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_Authentication_Handler,
 		},
 		{
-			MethodName: "Refresh",
-			Handler:    _AuthService_Refresh_Handler,
+			MethodName: "RefreshSession",
+			Handler:    _AuthService_RefreshSession_Handler,
 		},
 		{
-			MethodName: "Create",
-			Handler:    _AuthService_Create_Handler,
+			MethodName: "DeleteSession",
+			Handler:    _AuthService_DeleteSession_Handler,
+		},
+		{
+			MethodName: "CreateVoucher",
+			Handler:    _AuthService_CreateVoucher_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
