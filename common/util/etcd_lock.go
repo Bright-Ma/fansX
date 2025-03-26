@@ -3,7 +3,7 @@ package util
 import (
 	"context"
 	"errors"
-	etcd "go.etcd.io/etcd/clientv3"
+	etcd "go.etcd.io/etcd/client/v3"
 	"time"
 )
 

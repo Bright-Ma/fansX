@@ -19,11 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RelationService_Follow_FullMethodName        = "/relationRpc.RelationService/follow"
-	RelationService_CancelFollow_FullMethodName  = "/relationRpc.RelationService/cancelFollow"
-	RelationService_ListFollowing_FullMethodName = "/relationRpc.RelationService/listFollowing"
-	RelationService_IsFollowing_FullMethodName   = "/relationRpc.RelationService/isFollowing"
-	RelationService_ListFollower_FullMethodName  = "/relationRpc.RelationService/listFollower"
+	RelationService_Follow_FullMethodName           = "/relationRpc.RelationService/follow"
+	RelationService_CancelFollow_FullMethodName     = "/relationRpc.RelationService/cancelFollow"
+	RelationService_ListFollowing_FullMethodName    = "/relationRpc.RelationService/listFollowing"
+	RelationService_IsFollowing_FullMethodName      = "/relationRpc.RelationService/isFollowing"
+	RelationService_ListFollower_FullMethodName     = "/relationRpc.RelationService/listFollower"
+	RelationService_GetFollowingNums_FullMethodName = "/relationRpc.RelationService/getFollowingNums"
+	RelationService_GetFollowerNums_FullMethodName  = "/relationRpc.RelationService/getFollowerNums"
 )
 
 // RelationServiceClient is the client API for RelationService service.
@@ -35,6 +37,8 @@ type RelationServiceClient interface {
 	ListFollowing(ctx context.Context, in *ListFollowingReq, opts ...grpc.CallOption) (*ListFollowingResp, error)
 	IsFollowing(ctx context.Context, in *IsFollowingReq, opts ...grpc.CallOption) (*IsFollowingResp, error)
 	ListFollower(ctx context.Context, in *ListFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error)
+	GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error)
+	GetFollowerNums(ctx context.Context, in *GetFollowerNumsReq, opts ...grpc.CallOption) (*GetFollowerNumsResp, error)
 }
 
 type relationServiceClient struct {
@@ -95,6 +99,26 @@ func (c *relationServiceClient) ListFollower(ctx context.Context, in *ListFollow
 	return out, nil
 }
 
+func (c *relationServiceClient) GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFollowingNumsResp)
+	err := c.cc.Invoke(ctx, RelationService_GetFollowingNums_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *relationServiceClient) GetFollowerNums(ctx context.Context, in *GetFollowerNumsReq, opts ...grpc.CallOption) (*GetFollowerNumsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFollowerNumsResp)
+	err := c.cc.Invoke(ctx, RelationService_GetFollowerNums_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelationServiceServer is the server API for RelationService service.
 // All implementations must embed UnimplementedRelationServiceServer
 // for forward compatibility.
@@ -104,6 +128,8 @@ type RelationServiceServer interface {
 	ListFollowing(context.Context, *ListFollowingReq) (*ListFollowingResp, error)
 	IsFollowing(context.Context, *IsFollowingReq) (*IsFollowingResp, error)
 	ListFollower(context.Context, *ListFollowerReq) (*ListFollowerResp, error)
+	GetFollowingNums(context.Context, *GetFollowingNumsReq) (*GetFollowingNumsResp, error)
+	GetFollowerNums(context.Context, *GetFollowerNumsReq) (*GetFollowerNumsResp, error)
 	mustEmbedUnimplementedRelationServiceServer()
 }
 
@@ -128,6 +154,12 @@ func (UnimplementedRelationServiceServer) IsFollowing(context.Context, *IsFollow
 }
 func (UnimplementedRelationServiceServer) ListFollower(context.Context, *ListFollowerReq) (*ListFollowerResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListFollower not implemented")
+}
+func (UnimplementedRelationServiceServer) GetFollowingNums(context.Context, *GetFollowingNumsReq) (*GetFollowingNumsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFollowingNums not implemented")
+}
+func (UnimplementedRelationServiceServer) GetFollowerNums(context.Context, *GetFollowerNumsReq) (*GetFollowerNumsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFollowerNums not implemented")
 }
 func (UnimplementedRelationServiceServer) mustEmbedUnimplementedRelationServiceServer() {}
 func (UnimplementedRelationServiceServer) testEmbeddedByValue()                         {}
@@ -240,6 +272,42 @@ func _RelationService_ListFollower_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_GetFollowingNums_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFollowingNumsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).GetFollowingNums(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_GetFollowingNums_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).GetFollowingNums(ctx, req.(*GetFollowingNumsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RelationService_GetFollowerNums_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFollowerNumsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).GetFollowerNums(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_GetFollowerNums_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).GetFollowerNums(ctx, req.(*GetFollowerNumsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RelationService_ServiceDesc is the grpc.ServiceDesc for RelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +334,14 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listFollower",
 			Handler:    _RelationService_ListFollower_Handler,
+		},
+		{
+			MethodName: "getFollowingNums",
+			Handler:    _RelationService_GetFollowingNums_Handler,
+		},
+		{
+			MethodName: "getFollowerNums",
+			Handler:    _RelationService_GetFollowerNums_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

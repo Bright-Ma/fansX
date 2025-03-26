@@ -47,3 +47,13 @@ func (s *RelationServiceServer) ListFollower(ctx context.Context, in *relationRp
 	l := logic.NewListFollowerLogic(ctx, s.svcCtx)
 	return l.ListFollower(in)
 }
+
+func (s *RelationServiceServer) GetFollowingNums(ctx context.Context, in *relationRpc.GetFollowingNumsReq) (*relationRpc.GetFollowingNumsResp, error) {
+	l := logic.NewGetFollowingNumsLogic(ctx, s.svcCtx)
+	return l.GetFollowingNums(in)
+}
+
+func (s *RelationServiceServer) GetFollowerNums(ctx context.Context, in *relationRpc.GetFollowerNumsReq) (*relationRpc.GetFollowerNumsResp, error) {
+	l := logic.NewGetFollowerNumsLogic(ctx, s.svcCtx)
+	return l.GetFollowerNums(in)
+}

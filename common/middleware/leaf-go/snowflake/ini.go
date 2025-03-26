@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/bwmarrin/snowflake"
-	etcd "go.etcd.io/etcd/clientv3"
+	etcd "go.etcd.io/etcd/client/v3"
 	"strconv"
 	"time"
 )

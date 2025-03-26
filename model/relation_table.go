@@ -4,10 +4,11 @@ import "time"
 
 type Following struct {
 	Id          int64     `gorm:"PRIMARY_KEY"`
-	FollowerId  int64     `gorm:"index:following,priority:10"`
-	FollowingId int64     `gorm:"index:following,priority:20"`
-	Type        int       `gorm:"index:following,priority:30"`
-	UpdatedAt   time.Time `gorm:"index:following,priority:40"`
+	FollowerId  int64     `gorm:"not null;index:following,priority:10"`
+	Type        int       `gorm:"not null;index:following,priority:20"`
+	FollowingId int64     `gorm:"not null;index:following,priority:30"`
+	UpdatedAt   int64     `gorm:"not null;index:following,priority:40;autoUpdateTime:nano"`
+	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
 }
 
 type FollowingNums struct {
@@ -17,10 +18,11 @@ type FollowingNums struct {
 
 type Follower struct {
 	Id          int64     `gorm:"PRIMARY_KEY"`
-	FollowingId int64     `gorm:"index:follower,priority:10"`
-	FollowerId  int64     `gorm:"index:follower,priority:20"`
-	Type        int       `gorm:"index:follower,priority:30"`
-	UpdateAt    time.Time `gorm:"index:follower,priority:40"`
+	FollowingId int64     `gorm:"not null;index:follower,priority:10"`
+	Type        int       `gorm:"not null;index:follower,priority:20"`
+	FollowerId  int64     `gorm:"not null;index:follower,priority:30"`
+	UpdatedAt   int64     `gorm:"not null;index:follower,priority:40;autoUpdateTime:nano"`
+	CreatedAt   time.Time `gorm:"not null;autoCreateTime"`
 }
 
 type FollowerNums struct {
@@ -29,6 +31,6 @@ type FollowerNums struct {
 }
 
 var (
-	Followed   = true
-	UnFollowed = false
+	Followed   = 1
+	UnFollowed = 0
 )

@@ -9,6 +9,8 @@ service RelationService {
   rpc listFollowing(listFollowingReq)returns(listFollowingResp);
   rpc isFollowing(isFollowingReq)returns(isFollowingResp);
   rpc listFollower(listFollowerReq)returns(listFollowerResp);
+  rpc getFollowingNums(getFollowingNumsReq)returns(getFollowingNumsResp);
+  rpc getFollowerNums(getFollowerNumsReq)returns(getFollowerNumsResp);
 }
 
 message followReq {
@@ -49,6 +51,22 @@ message listFollowerReq{
 
 message listFollowerResp{
   repeated int64 userId = 1;
+}
+
+message getFollowerNumsReq{
+  int64 userId=1;
+}
+
+message getFollowerNumsResp{
+  int64 nums=1;
+}
+
+message getFollowingNumsReq{
+  int64 userId=1;
+}
+
+message getFollowingNumsResp{
+  int64 nums=1;
 }
 
 message Empty{
