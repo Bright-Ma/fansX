@@ -1,28 +1,40 @@
 package luaZset
 
-import (
-	"os"
-	"runtime"
-)
-
 type revRange struct {
 	function string
+	name     string
 }
 
 func (r *revRange) Name() string {
-	return "zset_revrange"
+	return r.name
 }
 func (r *revRange) Function() string { return r.function }
 
 var revRangeScript *revRange
 
 func init() {
-	_, path, _, _ := runtime.Caller(0)
-	res, err := os.ReadFile(path + "revrange.lua")
-	if err != nil {
-		panic(err.Error())
-	}
-	revRangeScript = &revRange{string(res)}
+	revRangeScript = &revRange{}
+	revRangeScript.name = "zset_revrange"
+	revRangeScript.function = `
+local key=KEYS[1]
+local all=ARGS[2]
+local b=ARGS[2]
+local e=ARGS[3]
+
+local exists=redis.call("EXISTS",key)
+if exists==0
+    then return nil
+end
+
+if all=="true"
+    then
+    local res=redis.call("ZREVRANGE",key,0,-1)
+    return res
+end
+
+local res=redis.call("ZREVRANGE",key,b,e)
+return res
+`
 }
 
 // GetRevRange

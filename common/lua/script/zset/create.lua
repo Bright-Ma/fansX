@@ -16,7 +16,7 @@ if exists==1
     end
 end
 
-for i=0,#data,2
+for i=1,#data,2
     do
     local score=tonumber(data[i])
     local value=data[i+1]

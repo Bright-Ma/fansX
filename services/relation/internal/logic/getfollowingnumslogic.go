@@ -2,7 +2,7 @@ package logic
 
 import (
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"context"
 	"errors"
 	"github.com/redis/go-redis/v9"
@@ -57,7 +57,7 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 	logger.Debug("not found following nums from redis")
 
 	record, err := l.svcCtx.Single.Do("GetFollowingNums:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
-		record := &model.FollowingNums{}
+		record := &database.FollowingNums{}
 		err = db.Take(record, in.UserId).Error
 		if err != nil {
 			return 0, err
@@ -67,9 +67,9 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 	})
 
 	if err != nil {
-		logger.Error("get following nums from tidb:" + err.Error())
+		logger.Error("get following nums from database:" + err.Error())
 		return nil, err
 	}
 
-	return &relationRpc.GetFollowingNumsResp{Nums: record.(*model.FollowingNums).Nums}, nil
+	return &relationRpc.GetFollowingNumsResp{Nums: record.(*database.FollowingNums).Nums}, nil
 }

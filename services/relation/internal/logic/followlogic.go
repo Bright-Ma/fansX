@@ -2,7 +2,7 @@ package logic
 
 import (
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"bilibili/services/relation/internal/svc"
 	"bilibili/services/relation/proto/relationRpc"
 	"context"
@@ -35,7 +35,7 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 
 	logger.Info("user following", "userId", in.UserId, "followingId", in.FollowId)
 
-	nums := &model.FollowingNums{}
+	nums := &database.FollowingNums{}
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(nums, in.UserId).Error
 	if err != nil {
 		logger.Error("lock table-following_nums:" + err.Error())
@@ -49,7 +49,7 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 
 	logger.Debug("lock table-following_nums")
 
-	record := &model.Following{}
+	record := &database.Following{}
 	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("follower_id = ? and type in (0,1) and following_id = ?", in.UserId, in.FollowId).
 		Take(record).Error
@@ -61,7 +61,7 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Debug("record found from table-followings")
-		err = tx.Take(record).Update("type", model.Followed).Error
+		err = tx.Take(record).Update("type", database.Followed).Error
 		if err != nil {
 			logger.Error("update table-followings:" + err.Error())
 			tx.Rollback()
@@ -75,11 +75,11 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 			return nil, errors.New("id create failed")
 		}
 
-		err = tx.Create(&model.Following{
+		err = tx.Create(&database.Following{
 			Id:          id,
 			FollowerId:  in.UserId,
 			FollowingId: in.FollowId,
-			Type:        model.Followed,
+			Type:        database.Followed,
 		}).Error
 		if err != nil {
 			logger.Error("create record from table-followings:" + err.Error())
@@ -89,7 +89,7 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 	}
 	logger.Debug("update table-followings")
 
-	err = tx.Take(&model.FollowingNums{}, in.UserId).Update("nums", gorm.Expr("nums + ?", 1)).Error
+	err = tx.Take(&database.FollowingNums{}, in.UserId).Update("nums", gorm.Expr("nums + ?", 1)).Error
 	if err != nil {
 		logger.Error("update table-following_nums:" + err.Error())
 		tx.Rollback()

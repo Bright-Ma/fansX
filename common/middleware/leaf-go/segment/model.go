@@ -21,14 +21,6 @@ type buffer struct {
 	preIndex int64
 }
 
-type Config struct {
-	Name string
-
-	UserName string
-	Password string
-	Address  string
-}
-
 type IdTable struct {
 	ID       int64     `gorm:"primary_key"`
 	Tag      string    `gorm:"unique_index;not null;size:255"`

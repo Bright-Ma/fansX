@@ -1,6 +1,7 @@
 package snowflake
 
 import (
+	leaf "bilibili/common/middleware/leaf-go"
 	"bilibili/common/util"
 	"context"
 	"errors"
@@ -10,7 +11,7 @@ import (
 	"time"
 )
 
-func NewCreator(ctx context.Context, config *Config) (*Creator, error) {
+func NewCreator(ctx context.Context, config *leaf.SnowflakeConfig) (*Creator, error) {
 	client, err := etcd.New(etcd.Config{
 		Endpoints:   config.EtcdAddr,
 		DialTimeout: time.Second,
@@ -57,7 +58,7 @@ func NewCreator(ctx context.Context, config *Config) (*Creator, error) {
 	return initCreator(ctx, client, config, id)
 }
 
-func initCreator(ctx context.Context, client *etcd.Client, config *Config, id int64) (*Creator, error) {
+func initCreator(ctx context.Context, client *etcd.Client, config *leaf.SnowflakeConfig, id int64) (*Creator, error) {
 	node, err := snowflake.NewNode(id)
 	if err != nil {
 		return nil, err

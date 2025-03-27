@@ -2,18 +2,14 @@ package svc
 
 import (
 	"bilibili/common/lua"
-	luaHash "bilibili/common/lua/script/hash"
 	leaf "bilibili/common/middleware/leaf-go"
-	"bilibili/common/middleware/leaf-go/snowflake"
 	"bilibili/common/util"
 	"bilibili/services/relation/internal/config"
-	"context"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
-	"strconv"
 )
 
 type ServiceContext struct {
@@ -38,7 +34,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	})
 	creator, err := leaf.Init(&leaf.Config{
 		Model: leaf.Snowflake,
-		SnowflakeConfig: &snowflake.Config{
+		SnowflakeConfig: &leaf.SnowflakeConfig{
 			CreatorName: "relation",
 			Addr:        "addr",
 			EtcdAddr:    []string{"127.0.0.1:4379"},
@@ -52,9 +48,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err.Error())
 	}
 	e := lua.NewExecutor(r)
-	i, err := e.Load(context.Background(), []lua.Script{luaHash.GetGetField(), luaHash.GetCreate()})
-	if err != nil {
-		panic("load panic,index:" + strconv.Itoa(i) + "," + err.Error())
+	if err := e.LoadAll(); err != nil {
+		panic(err.Error())
 	}
 	return &ServiceContext{
 		Config:   c,

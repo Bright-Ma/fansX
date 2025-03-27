@@ -2,7 +2,7 @@ package logic
 
 import (
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"bilibili/services/relation/internal/svc"
 	"bilibili/services/relation/proto/relationRpc"
 	"context"
@@ -33,9 +33,9 @@ func (l *CancelFollowLogic) CancelFollow(in *relationRpc.CancelFollowReq) (*rela
 
 	logger.Info("user cancelFollowed", "userId", in.UserId, "followedId", in.FollowId)
 
-	err := tx.Model(&model.Following{}).
-		Where("follower_id = ? and type = ? and following_id = ?", in.UserId, model.Followed, in.FollowId).
-		Update("type", model.UnFollowed).Error
+	err := tx.Model(&database.Following{}).
+		Where("follower_id = ? and type = ? and following_id = ?", in.UserId, database.Followed, in.FollowId).
+		Update("type", database.UnFollowed).Error
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		logger.Error("update table-following:" + err.Error())
@@ -49,7 +49,7 @@ func (l *CancelFollowLogic) CancelFollow(in *relationRpc.CancelFollowReq) (*rela
 
 	logger.Debug("update table-following")
 
-	err = tx.Take(&model.FollowingNums{}, in.UserId).Where("nums", gorm.Expr("nums - 1")).Error
+	err = tx.Take(&database.FollowingNums{}, in.UserId).Where("nums", gorm.Expr("nums - 1")).Error
 	if err != nil {
 		logger.Error("update table-following_nums:" + err.Error())
 		tx.Rollback()

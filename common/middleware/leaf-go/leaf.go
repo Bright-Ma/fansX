@@ -10,8 +10,8 @@ import (
 
 type Config struct {
 	Model           int
-	SegmentConfig   *segment.Config
-	SnowflakeConfig *snowflake.Config
+	SegmentConfig   *SegmentConfig
+	SnowflakeConfig *SnowflakeConfig
 }
 
 var (
@@ -33,4 +33,18 @@ func Init(c *Config) (Core, error) {
 	}
 
 	return nil, errors.New("please select id model")
+}
+
+type SnowflakeConfig struct {
+	CreatorName string
+	Addr        string
+	EtcdAddr    []string
+}
+
+type SegmentConfig struct {
+	Name string
+
+	UserName string
+	Password string
+	Address  string
 }

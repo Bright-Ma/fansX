@@ -1,13 +1,14 @@
 package segment
 
 import (
+	leaf "bilibili/common/middleware/leaf-go"
 	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 import "gorm.io/driver/mysql"
 
-func NewCreator(config *Config) (*Creator, error) {
+func NewCreator(config *leaf.SegmentConfig) (*Creator, error) {
 	dsn := config.UserName + ":" + config.Password + "@" + "tcp(" + config.Address + ")" + "/IDCreator?charset=utf8mb4&parseTime=True"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {

@@ -2,7 +2,7 @@ package logic
 
 import (
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -67,9 +67,9 @@ func (l *ListFollowingLogic) ListFollowing(in *relationRpc.ListFollowingReq) (*r
 
 	record, err := l.svcCtx.Single.Do("ListFollowing:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
 
-		record := make([]model.Following, 0)
+		record := make([]database.Following, 0)
 		err = db.Select("following_id", "updated_at").
-			Where("follower_id = ?  and type = ?", in.UserId, model.Followed).Find(&record).Error
+			Where("follower_id = ?  and type = ?", in.UserId, database.Followed).Find(&record).Error
 
 		if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
@@ -92,7 +92,7 @@ func (l *ListFollowingLogic) ListFollowing(in *relationRpc.ListFollowingReq) (*r
 		return nil, err
 	}
 
-	records := record.([]model.Following)
+	records := record.([]database.Following)
 	start := min(len(records), int(in.Offset))
 	end := min(len(records)-1, int(in.Limit+in.Offset-1))
 
@@ -106,7 +106,7 @@ func (l *ListFollowingLogic) ListFollowing(in *relationRpc.ListFollowingReq) (*r
 		res[i-start] = records[i].FollowingId
 	}
 
-	logger.Info("get following list from tidb", "nums", len(res))
+	logger.Info("get following list from database", "nums", len(res))
 	return &relationRpc.ListFollowingResp{UserId: res}, nil
 
 }

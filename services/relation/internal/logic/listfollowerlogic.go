@@ -3,7 +3,7 @@ package logic
 import (
 	luaZset "bilibili/common/lua/script/zset"
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -62,9 +62,9 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 	}
 
 	record, err := l.svcCtx.Single.Do("ListFollower:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
-		record := make([]model.Follower, 0)
+		record := make([]database.Follower, 0)
 		err = db.Select("follower_id", "updated_at").
-			Where("following_id = ? and type = ?", in.UserId, model.Followed).Limit(5000).Find(&record).Error
+			Where("following_id = ? and type = ?", in.UserId, database.Followed).Limit(5000).Find(&record).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 		return record, nil
 	})
 
-	records := record.([]model.Follower)
+	records := record.([]database.Follower)
 	start := min(len(records), int(in.Offset))
 	end := min(len(records)-1, int(in.Limit+in.Offset-1))
 
@@ -94,6 +94,6 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 		res[i-start] = records[i].FollowerId
 	}
 
-	logger.Info("get follower list from tidb", "nums", len(res))
+	logger.Info("get follower list from database", "nums", len(res))
 	return &relationRpc.ListFollowerResp{UserId: res}, nil
 }

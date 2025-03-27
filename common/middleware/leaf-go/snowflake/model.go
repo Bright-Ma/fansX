@@ -13,9 +13,3 @@ type Creator struct {
 	snowNode *snowflake.Node
 	lease    etcd.LeaseID
 }
-
-type Config struct {
-	CreatorName string
-	Addr        string
-	EtcdAddr    []string
-}

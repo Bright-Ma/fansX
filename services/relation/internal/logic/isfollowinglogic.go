@@ -3,7 +3,7 @@ package logic
 import (
 	luaZset "bilibili/common/lua/script/zset"
 	"bilibili/common/util"
-	"bilibili/model"
+	"bilibili/internal/model/database"
 	"context"
 	"errors"
 	"gorm.io/gorm"
@@ -58,9 +58,9 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 	logger.Debug("table not exists")
 
 	followed, err := s.Do("IdFollowing:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
-		record := make([]model.Following, 0)
+		record := make([]database.Following, 0)
 		err = db.Select("following_id", "updated_at").
-			Where("follower_id =  ? and type = ?", in.UserId, model.Followed).
+			Where("follower_id =  ? and type = ?", in.UserId, database.Followed).
 			Find(&record).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err

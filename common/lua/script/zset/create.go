@@ -1,28 +1,47 @@
 package luaZset
 
-import (
-	"os"
-	"runtime"
-)
-
 type create struct {
+	name     string
 	function string
 }
 
 func (c *create) Name() string {
-	return "zset_create"
+	return c.name
 }
 func (c *create) Function() string { return c.function }
 
 var createScript *create
 
 func init() {
-	_, path, _, _ := runtime.Caller(0)
-	res, err := os.ReadFile(path + "create.lua")
-	if err != nil {
-		panic(err.Error())
-	}
-	revRangeScript = &revRange{string(res)}
+	createScript = &create{}
+	createScript.name = "zset_create"
+	createScript.function = `
+local key=KEYS[1]
+local del=KEYS[2]
+local data=ARGS[1]
+
+if (#data)%2~=0
+then return {err="data nums should be 2*x"}
+end
+
+local exists=redis.call("EXISTS",key)
+
+if exists==1
+    then
+    if del=="true"
+        then redis.call("DEL",key)
+        else return
+    end
+end
+
+for i=1,#data,2
+    do
+    local score=tonumber(data[i])
+    local value=data[i+1]
+    redis.call("ZADD",score,value)
+end
+return
+`
 }
 
 func GetCreate() *create { return createScript }

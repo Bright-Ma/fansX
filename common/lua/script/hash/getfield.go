@@ -1,27 +1,32 @@
 package luaHash
 
-import (
-	"os"
-	"runtime"
-)
-
 type getField struct {
 	function string
+	name     string
 }
 
-func (h *getField) Name() string     { return "hash_getfield" }
-func (h *getField) Function() string { return h.function }
+func (g *getField) Name() string     { return g.name }
+func (g *getField) Function() string { return g.function }
 
 var getFieldScript *getField
 
 func init() {
-	_, path, _, _ := runtime.Caller(0)
-	res, err := os.ReadFile(path + "getfield.lua")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	getFieldScript = &getField{string(res)}
+	getFieldScript = &getField{}
+	getFieldScript.name = "hash_getfield"
+	getFieldScript.function = `
+local name=KEYS[1]
+local field=ARGS[1]
+local exists=redis.call("EXISTS",name)
+if exists==0 then
+    return "TableNotExists"
+end
+local res=redis.call("HGet",name,field)
+if res==nil
+then
+    return "FieldNotExists"
+else
+    return res
+end`
 }
 
 func GetGetField() *getField {
