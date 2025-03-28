@@ -4,10 +4,11 @@ import (
 	luaString "bilibili/common/lua/script/string"
 	"bilibili/internal/model/database"
 	"bilibili/internal/model/mq"
-	luaFollowing "bilibili/mq/following/lua"
+	luaFollowing "bilibili/mq/follower/lua"
 	"context"
 	"gorm.io/gorm"
 	"strconv"
+	"time"
 )
 
 func (h *Handler) UpdateNums(tx *gorm.DB, data *database.Follower) error {
@@ -20,13 +21,16 @@ func (h *Handler) UpdateNums(tx *gorm.DB, data *database.Follower) error {
 
 func (h *Handler) UpdateRedis(data *database.Follower) {
 	e := h.executor
-	key := "follower:zset:" + strconv.FormatInt(data.FollowingId, 10)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	key := "Follower:" + strconv.FormatInt(data.FollowingId, 10)
 	if data.Type == database.Followed {
-		e.Execute(context.Background(), luaFollowing.GetAdd(), []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(context.Background(), luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
+		e.Execute(timeout, luaFollowing.GetAdd(), []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
+		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
 	} else {
-		h.client.ZRem(context.Background(), key, strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(context.Background(), luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
+		h.client.ZRem(timeout, key, strconv.FormatInt(data.FollowerId, 10))
+		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
 	}
 }
 

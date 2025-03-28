@@ -4,6 +4,7 @@ import (
 	"bilibili/internal/model/database"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func main() {
@@ -16,10 +17,9 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	client.Create(&database.Following{
-		Id:          30,
-		FollowerId:  1,
-		Type:        1,
-		FollowingId: 1,
-	})
+	tx := client.Begin()
+	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&database.FollowingNums{}, 1).Error
+	if err != nil {
+		panic(err.Error())
+	}
 }

@@ -18,20 +18,20 @@ func init() {
 	addScript.function = `
 local key=KEYS[1]
 
-local data=ARGS[1]
+local data=ARGV
 
 local exists=redis.call("EXISTS",key)
 
 if exists==0
-    then return
+    then return nil
 end
 
-for i=0,#data,2
+for i=1,#data,2
     do
-    redis.call("ZADD",tomember(data[i]),data[i+1])
+    redis.call("ZADD",key,tonumber(data[i]),data[i+1])
 end
 
-return
+return true
 `
 }
 

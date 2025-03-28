@@ -61,5 +61,5 @@ func (e *Executor) LoadAll() error {
 }
 
 func (e *Executor) Execute(ctx context.Context, script Script, keys []string, args ...interface{}) *redis.Cmd {
-	return e.client.EvalSha(ctx, e.sha[script.Name()], keys, args)
+	return e.client.EvalSha(ctx, e.sha[script.Name()], keys, args...)
 }

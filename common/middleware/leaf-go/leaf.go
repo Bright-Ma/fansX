@@ -25,11 +25,20 @@ type Core interface {
 
 func Init(c *Config) (Core, error) {
 	if c.Model == Segment {
-		return segment.NewCreator(c.SegmentConfig)
+		return segment.NewCreator(&segment.Config{
+			Name:     c.SegmentConfig.Name,
+			UserName: c.SegmentConfig.UserName,
+			Password: c.SegmentConfig.Password,
+			Address:  c.SegmentConfig.Address,
+		})
 	} else if c.Model == Snowflake {
 		timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		return snowflake.NewCreator(timeout, c.SnowflakeConfig)
+		return snowflake.NewCreator(timeout, &snowflake.Config{
+			CreatorName: c.SnowflakeConfig.CreatorName,
+			Addr:        c.SnowflakeConfig.Addr,
+			EtcdAddr:    c.SnowflakeConfig.EtcdAddr,
+		})
 	}
 
 	return nil, errors.New("please select id model")

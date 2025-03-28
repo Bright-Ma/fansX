@@ -15,13 +15,13 @@ func init() {
 	getFieldScript.name = "zset.getfield"
 	getFieldScript.function = `
 local key=KEYS[1]
-local field=ARGS[1]
-local exists=redis.call("EXISTS",name)
+local field=ARGV[1]
+local exists=redis.call("EXISTS",key)
 if exists==0
     then return "TableNotExists"
 end
 local res=redis.call("ZSCORE",key,field)
-if res==nil
+if not res
 then
     return "FieldNotExists"
 else

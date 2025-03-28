@@ -17,9 +17,9 @@ func init() {
 	revRangeScript.name = "zset_revrange"
 	revRangeScript.function = `
 local key=KEYS[1]
-local all=ARGS[2]
-local b=ARGS[2]
-local e=ARGS[3]
+local all=ARGV[1]
+local b=ARGV[2]
+local e=ARGV[3]
 
 local exists=redis.call("EXISTS",key)
 if exists==0

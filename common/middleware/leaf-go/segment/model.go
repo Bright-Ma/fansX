@@ -29,3 +29,11 @@ type IdTable struct {
 	Desc     string    `gorm:"size:255"`
 	UpdateAt time.Time `gorm:"autoUpdateTime"`
 }
+
+type Config struct {
+	Name string
+
+	UserName string
+	Password string
+	Address  string
+}

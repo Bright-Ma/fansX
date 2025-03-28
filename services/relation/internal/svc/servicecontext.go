@@ -23,15 +23,17 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	dsn := "root:@tcp(linux.1jian10.cn:4000)/relation?charset=utf8mb4&parseTime=True"
+	dsn := "root:@tcp(linux.1jian10.cn:4000)/test?charset=utf8mb4&parseTime=True"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err.Error())
 	}
+
 	r := redis.NewClient(&redis.Options{
 		Addr: "127.0.0.1:6379",
 		DB:   1,
 	})
+
 	creator, err := leaf.Init(&leaf.Config{
 		Model: leaf.Snowflake,
 		SnowflakeConfig: &leaf.SnowflakeConfig{
@@ -43,14 +45,17 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err.Error())
 	}
-	logger, err := util.InitLog("RelationService", slog.LevelInfo)
+
+	logger, err := util.InitLog("RelationService", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}
+
 	e := lua.NewExecutor(r)
 	if err := e.LoadAll(); err != nil {
 		panic(err.Error())
 	}
+
 	return &ServiceContext{
 		Config:   c,
 		DB:       db,
@@ -58,5 +63,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Creator:  creator,
 		Logger:   logger,
 		Executor: e,
+		Single:   &singleflight.Group{},
 	}
 }

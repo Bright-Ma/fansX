@@ -33,8 +33,8 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 	db := l.svcCtx.DB
 	logger := util.SetTrace(context.Background(), l.svcCtx.Logger)
 	client := l.svcCtx.RClient
-
 	logger.Info("GetFollowingNums", "userid", in.UserId)
+
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	key := "FollowingNums:" + strconv.FormatInt(in.UserId, 10)
@@ -58,11 +58,18 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 
 	record, err := l.svcCtx.Single.Do("GetFollowingNums:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
 		record := &database.FollowingNums{}
-		err = db.Take(record, in.UserId).Error
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		err = db.WithContext(timeout).Take(record, in.UserId).Error
 		if err != nil {
 			return 0, err
 		}
-		client.Set(context.Background(), key, record.Nums, time.Minute*15)
+
+		err = client.Set(timeout, key, record.Nums, time.Minute*15).Err()
+		if err != nil {
+			logger.Warn("set following nums to redis:" + err.Error())
+		}
 		return record, nil
 	})
 

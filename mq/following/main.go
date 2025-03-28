@@ -1,49 +1,56 @@
 package main
 
 import (
-	"bilibili/common/lua"
-	luaFollowing "bilibili/mq/following/lua"
+	"bilibili/internal/model/mq"
 	"context"
+	"encoding/json"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"log/slog"
 )
 
-func main() {
-	dsn := "root:@tcp(linux.1jian10.cn:4000)/relation?charset=utf8mb4&parseTime=True"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic(err.Error())
+type Handler struct {
+	client *redis.Client
+}
+
+func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		message := &mq.FollowingCanalJson{}
+		err := json.Unmarshal(msg.Value, message)
+		if err != nil {
+			slog.Error("unmarshal json:" + err.Error())
+			continue
+		}
+		key1 := "Following:" + message.Data[0].FollowerId
+		key2 := "FollowingNums:" + message.Data[0].FollowerId
+		h.client.Del(context.Background(), key1, key2)
+		session.MarkMessage(msg, "")
 	}
+
+	return nil
+}
+
+func main() {
 
 	client := redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
+		Addr: "1jian10.cn:6379",
 		DB:   1,
 	})
-	e := lua.NewExecutor(client)
-
-	if err := e.LoadAll(); err != nil {
-		panic(err.Error())
-	}
-	_, err = e.Load(context.Background(), []lua.Script{luaFollowing.GetAdd()})
-	if err != nil {
-		panic(err.Error())
-	}
 
 	config := sarama.NewConfig()
 	config.Version = sarama.DefaultVersion
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	config.Consumer.Offsets.AutoCommit.Enable = false
-	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test-group", config)
+	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test-group2", config)
 	handler := Handler{
-		db:       db,
-		client:   client,
-		executor: e,
+		client: client,
 	}
 
-	err = consumer.Consume(context.Background(), []string{"topic-test"}, &handler)
+	err := consumer.Consume(context.Background(), []string{"topic-test2"}, &handler)
 	if err != nil {
 		panic(err.Error())
 	}
+
 }

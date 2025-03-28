@@ -14,7 +14,7 @@ func InitLog(name string, level slog.Level) (*slog.Logger, error) {
 	}
 	l := slog.New(slog.NewJSONHandler(file, &slog.HandlerOptions{
 		AddSource: true,
-		Level:     slog.LevelInfo,
+		Level:     level,
 	}))
 	return l.With("ServiceName", name), nil
 }

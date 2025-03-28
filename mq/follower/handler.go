@@ -4,6 +4,7 @@ import (
 	"bilibili/common/lua"
 	"bilibili/internal/model/database"
 	"bilibili/internal/model/mq"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/IBM/sarama"
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"log/slog"
+	"time"
 )
 
 type Handler struct {
@@ -58,7 +60,10 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 func (h *Handler) process(data *database.Follower) error {
 	var err error
 
-	tx := h.db.Begin()
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	tx := h.db.WithContext(timeout).Begin()
 	record := &database.Follower{}
 
 	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(record, data.Id).Error

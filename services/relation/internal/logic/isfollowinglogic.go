@@ -40,10 +40,10 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	key := "following:zset:" + strconv.FormatInt(in.UserId, 10)
-	res, err := executor.Execute(timeout, luaZset.GetGetField(), []string{key, strconv.FormatInt(in.FollowId, 10)}).Result()
+	key := "Following:" + strconv.FormatInt(in.UserId, 10)
+	res, err := executor.Execute(timeout, luaZset.GetGetField(), []string{key}, strconv.FormatInt(in.FollowId, 10)).Result()
 	if err != nil {
-		logger.Error("exec script HGet:" + err.Error())
+		logger.Error("exec script GetField:" + err.Error())
 		return nil, err
 	}
 
@@ -57,9 +57,12 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 
 	logger.Debug("table not exists")
 
-	followed, err := s.Do("IdFollowing:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
+	followed, err := s.Do("IsFollowing:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
 		record := make([]database.Following, 0)
-		err = db.Select("following_id", "updated_at").
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		err = db.WithContext(timeout).Select("following_id", "updated_at").
 			Where("follower_id =  ? and type = ?", in.UserId, database.Followed).
 			Find(&record).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -77,7 +80,13 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 				kvs[i*2] = strconv.FormatInt(v.UpdatedAt, 10)
 				kvs[i*2+1] = strconv.FormatInt(v.FollowingId, 10)
 			}
-			executor.Execute(context.Background(), luaZset.GetCreate(), []string{key, "false"}, kvs)
+			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+
+			err := executor.Execute(timeout, luaZset.GetCreate(), []string{key, "false"}, kvs).Err()
+			if err != nil {
+				logger.Warn("execute zset_create:" + err.Error())
+			}
 		}()
 		return followed, err
 	})

@@ -6,6 +6,7 @@ import (
 	"bilibili/internal/model/database"
 	"context"
 	"errors"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -40,42 +41,55 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 		logger.Info("page over")
 		return nil, errors.New("page over")
 	}
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	key := "follower:zset:" + strconv.FormatInt(in.UserId, 10)
+	key := "Follower:" + strconv.FormatInt(in.UserId, 10)
 	fields, err := executor.Execute(timeout, luaZset.GetRevRange(), []string{key}, "false", in.Offset, in.Limit+in.Offset-1).Result()
-	if err != nil {
+	if err != nil && !errors.Is(err, redis.Nil) {
 		logger.Error("search follower from redis:" + err.Error())
 		return nil, err
 	}
-	if fields != nil {
-		res := make([]int64, len(fields.([]string)))
-		for i, v := range fields.([]string) {
-			res[i], err = strconv.ParseInt(v, 10, 64)
+
+	if err == nil {
+		logger.Debug("search follower list from redis")
+
+		res := make([]int64, len(fields.([]interface{})))
+		for i, v := range fields.([]interface{}) {
+
+			res[i], err = strconv.ParseInt(v.(string), 10, 64)
 			if err != nil {
 				logger.Error("parse follower:"+err.Error(), "index", i, "num", v)
 				return nil, err
 			}
-			return &relationRpc.ListFollowerResp{UserId: res}, nil
 		}
+		return &relationRpc.ListFollowerResp{UserId: res}, nil
 	}
 
 	record, err := l.svcCtx.Single.Do("ListFollower:"+strconv.FormatInt(in.UserId, 10), func() (interface{}, error) {
 		record := make([]database.Follower, 0)
-		err = db.Select("follower_id", "updated_at").
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		err = db.WithContext(timeout).Select("follower_id", "updated_at").
 			Where("following_id = ? and type = ?", in.UserId, database.Followed).Limit(5000).Find(&record).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		go func() {
-			data := make([]string, len(record)*2)
+			data := make([]interface{}, len(record)*2)
 			for i, v := range record {
 				data[i*2] = strconv.FormatInt(v.UpdatedAt, 10)
 				data[i*2+1] = strconv.FormatInt(v.FollowerId, 10)
 			}
-			executor.Execute(context.Background(), luaZset.GetCreate(), []string{key, "false"}, data)
+			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+
+			err := executor.Execute(timeout, luaZset.GetCreate(), []string{key, "false", "300"}, data...).Err()
+			if err != nil {
+				logger.Warn("execute zset_create:" + err.Error())
+			}
 		}()
 		return record, nil
 	})

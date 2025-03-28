@@ -9,6 +9,7 @@ import (
 	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -30,10 +31,12 @@ func NewFollowLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FollowLogi
 func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, error) {
 	db := l.svcCtx.DB
 	creator := l.svcCtx.Creator
-	tx := db.Begin()
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
-
 	logger.Info("user following", "userId", in.UserId, "followingId", in.FollowId)
+
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	tx := db.WithContext(timeout).Begin()
 
 	nums := &database.FollowingNums{}
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(nums, in.UserId).Error
@@ -60,7 +63,11 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 		return nil, err
 
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		logger.Debug("record found from table-followings")
+		if record.Type == database.Followed {
+			logger.Info("also following")
+			return &relationRpc.Empty{}, nil
+		}
+
 		err = tx.Take(record).Update("type", database.Followed).Error
 		if err != nil {
 			logger.Error("update table-followings:" + err.Error())
@@ -89,7 +96,7 @@ func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, err
 	}
 	logger.Debug("update table-followings")
 
-	err = tx.Take(&database.FollowingNums{}, in.UserId).Update("nums", gorm.Expr("nums + ?", 1)).Error
+	err = tx.Take(&database.FollowingNums{}, in.UserId).Update("nums", gorm.Expr("nums + 1")).Error
 	if err != nil {
 		logger.Error("update table-following_nums:" + err.Error())
 		tx.Rollback()
