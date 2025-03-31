@@ -1,0 +1,16 @@
+Etcd:
+  #etcd地址
+  Endpoints:
+    - 127.0.0.1:4379
+  #连接超时时间(second)
+  DialTimeout: 5
+  #监测服务的key的前缀
+  WatchPrefix: Services/Pusher
+#http监听端口号
+Port: 23321
+#集群模式
+#1:random(随机路由，redis存储映射关系)
+#2:ConsistentHash(一致性hash)
+model: 2
+#一致性hash模式下，每个真实节点有多少个虚拟节点
+virtualNums: 100

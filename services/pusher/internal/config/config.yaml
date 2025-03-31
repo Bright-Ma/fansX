@@ -1,0 +1,45 @@
+websocket:
+  #读缓冲区大小
+  ReadBufferSize: 128
+  #写缓冲区大小
+  WriteBufferSize: 1024
+  #websocket升级监听端口号
+  Port: 23311
+  #websocket写超时时间(second)
+  WriteTimeout: 3
+  #websocket读(心跳)超时时间(second)
+  ReadTimeout: 60
+etcd:
+  #etcd地址
+  Endpoints:
+  - 127.0.0.1:4379
+  #连接超时时间(second)
+  DialTimeout: 5
+  #服务名称
+  Name: Services/Pusher
+  #服务地址
+  Addr: 127.0.0.1:23301
+  #租约时间(second)
+  TTL: 10
+  #一致性hash下，watch的key的前缀
+  WatchPrefix: Services/Pusher/
+redis:
+  #redis地址
+  Addr: 127.0.0.1:6379
+  #redis数据库编号
+  DB: 1
+  #redis设备与push节点映射关系ttl(second)
+  TTL: 120
+nsq:
+  #接收发送全局消息的topic名称
+  topic: GlobalMessage
+  #nsqd地址
+  Addr: 127.0.0.1:4150
+#集群模式
+#1:random(随机路由，redis存储映射关系)
+#2:ConsistentHash(一致性hash)
+model: 2
+#本地ip地址
+ip: 127.0.0.1
+#一致性hash模式下，每个真实节点有多少个虚拟节点
+virtualNums: 100

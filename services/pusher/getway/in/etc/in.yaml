@@ -1,0 +1,20 @@
+Name: InnerGetWay
+ListenOn: 0.0.0.0:23331
+Etcd:
+  Hosts:
+  - 127.0.0.1:4379
+  Key: Services/InnerGetWay
+WatchPrefix: Services/Pusher
+
+MRedis:
+  Host: 127.0.0.1:6379
+  DB: 1
+NSQ:
+  Addr: 127.0.0.1:4150
+  Topic: GlobalMessage
+#集群模式
+#1:random(随机路由，redis存储映射关系)
+#2:ConsistentHash(一致性hash)
+model: 2
+#一致性hash模式下，每个真实节点有多少个虚拟节点
+virtualNums: 100
