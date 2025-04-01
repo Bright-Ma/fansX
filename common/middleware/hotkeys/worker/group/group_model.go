@@ -11,7 +11,7 @@ type Group struct {
 	nextId     int64
 	bucket     []cmap.ConcurrentMap[string, *count]
 
-	connectionSet cmap.ConcurrentMap[int64, *Conn]
+	connectionSet cmap.ConcurrentMap[string, *Conn]
 }
 
 var groupMap cmap.ConcurrentMap[string, *Group]

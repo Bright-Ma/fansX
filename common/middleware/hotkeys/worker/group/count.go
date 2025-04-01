@@ -2,13 +2,11 @@ package group
 
 import (
 	"bilibili/common/middleware/hotkeys/model"
-	"sync"
 	"time"
 )
 
 func newCount(key string, id int, g *Group) *count {
 	c := &count{
-		mutex:    sync.Mutex{},
 		key:      key,
 		lastTime: time.Now().UnixMilli(),
 		bucketId: id,
@@ -16,7 +14,8 @@ func newCount(key string, id int, g *Group) *count {
 		deleted:  false,
 		window:   [20]int64{},
 	}
-	c.check()
+
+	go c.check()
 	return c
 }
 
@@ -65,12 +64,15 @@ func (c *count) send() {
 func (c *count) check() {
 	for {
 		time.Sleep(time.Second * 30)
+
 		c.mutex.Lock()
+
 		if time.Now().UnixMilli()-c.lastTime > (time.Second * 20).Milliseconds() {
 			c.delete()
 			c.mutex.Unlock()
 			return
 		}
+
 		c.mutex.Unlock()
 	}
 }

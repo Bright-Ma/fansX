@@ -2,6 +2,7 @@ package group
 
 import (
 	"github.com/panjf2000/gnet"
+	"strconv"
 )
 
 type Conn struct {
@@ -12,6 +13,6 @@ type Conn struct {
 }
 
 func (c *Conn) Close() {
-	c.Group.connectionSet.Remove(c.Id)
+	c.Group.connectionSet.Remove(strconv.FormatInt(c.Id, 10))
 	_ = c.Conn.Close()
 }

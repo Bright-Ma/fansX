@@ -22,10 +22,9 @@ func init() {
 }
 
 type ClientMessage struct {
-	Type      string   `json:"type"`
-	GroupName string   `json:"group_name"`
-	Keys      []string `json:"keys"`
-	Times     []int64  `json:"times"`
+	Type      string         `json:"type"`
+	GroupName string         `json:"group_name"`
+	Key       map[string]int `json:"key"`
 }
 
 type ServerMessage struct {

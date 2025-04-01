@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	err := service.RegisterService([]string{"1jian10.cn:4379"}, "1jian10.cn:23310", "hotkeys/"+strconv.FormatInt(time.Now().UnixNano(), 10))
+	err := service.RegisterService([]string{"1jian10.cn:4379"}, "1jian10.cn:23310", "worker/"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	if err != nil {
 		panic(err.Error())
 	}
