@@ -1,7 +1,7 @@
 package server
 
 import (
-	group2 "bilibili/pkg/hotkeys/worker/group"
+	group2 "bilibili/pkg/hotkey-go/worker/group"
 )
 
 type context struct {

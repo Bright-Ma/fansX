@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bilibili/pkg/hotkeys/worker/group"
+	"bilibili/pkg/hotkey-go/worker/group"
 	"context"
 	"fmt"
 	etcd "go.etcd.io/etcd/client/v3"
@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// RegisterService 将worker节点注册到etcd，同时监听配置的变化(目前只提供group的变化)，host为本机ip+监听的端口号
 func RegisterService(etcdAddr []string, Host string, key string) error {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
@@ -57,6 +58,7 @@ func RegisterService(etcdAddr []string, Host string, key string) error {
 	return nil
 }
 
+// watchGroup 监听group的变化，未来考虑加入其他配置文件
 func watchGroup(client *etcd.Client, rev int64) {
 	watch := client.Watch(context.Background(), "group/", etcd.WithRev(rev))
 	defer func() {

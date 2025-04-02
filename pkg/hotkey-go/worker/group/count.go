@@ -1,10 +1,7 @@
 package group
 
 import (
-	"bilibili/pkg/hotkeys/model"
-	"fmt"
-	"log/slog"
-	"sync/atomic"
+	"bilibili/pkg/hotkey-go/model"
 	"time"
 )
 
@@ -22,25 +19,28 @@ func newCount(key string, id int, g *Group) *count {
 	return c
 }
 
-var Nums uint32 = 0
-
+// 计算时间窗口内的访问次数
 func (c *count) add(times int64) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
 	if c.deleted {
 		return
 	}
-	t := time.Now().UnixMilli()
 
+	t := time.Now().UnixMilli()
+	// 距离上次访问过去2s，重置时间窗口
 	if t-c.lastTime >= 20000 {
 		for i := 0; i < len(c.window); i++ {
 			c.window[i] = 0
 		}
+
 		c.window[0] = times
 		c.total = times
 		c.lastTime = t
 
 		c.send()
+
 	} else {
 		for {
 			if t/100 == c.lastTime/100 {
@@ -48,7 +48,7 @@ func (c *count) add(times int64) {
 			}
 			c.lastTime += 100
 			next := (c.lastIndex + 1) % 20
-
+			// 擦除该段内的值
 			if t/100 != c.lastTime/100 {
 				c.total -= c.window[next]
 				c.window[next] = 0
@@ -60,11 +60,11 @@ func (c *count) add(times int64) {
 
 		c.send()
 	}
-	atomic.AddUint32(&Nums, 1)
 
 	return
 }
 
+// 热key判断以及尝试发送
 func (c *count) send() {
 	if c.total >= 20 && time.Now().UnixMilli()-c.lastSend >= 65000 {
 		c.group.Send(model.AddKey, []string{c.key})
@@ -72,6 +72,7 @@ func (c *count) send() {
 	}
 }
 
+// key的心跳检测，若一段时间内不访问，则删除该key
 func (c *count) check() {
 	for {
 		time.Sleep(time.Second * 30)
@@ -79,7 +80,7 @@ func (c *count) check() {
 		c.mutex.Lock()
 
 		if time.Now().UnixMilli()-c.lastTime > (time.Second * 20).Milliseconds() {
-			slog.Debug("del"+fmt.Sprintf("%d", c.bucketId), fmt.Sprintf("%s", c.key))
+
 			c.delete()
 			c.mutex.Unlock()
 			return

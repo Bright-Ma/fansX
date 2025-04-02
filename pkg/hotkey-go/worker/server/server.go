@@ -10,6 +10,7 @@ type Codec struct {
 }
 
 func Serve(Addr string) error {
+	// 设置编解码器，使用4字节的报文头标识消息边界
 	codec := gnet.NewLengthFieldBasedFrameCodec(
 		gnet.EncoderConfig{
 			ByteOrder:                       binary.BigEndian,

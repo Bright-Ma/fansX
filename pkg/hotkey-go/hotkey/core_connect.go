@@ -1,7 +1,7 @@
 package hotkey
 
 import (
-	"bilibili/pkg/hotkeys/model"
+	"bilibili/pkg/hotkey-go/model"
 	"encoding/json"
 	"log/slog"
 	"net"

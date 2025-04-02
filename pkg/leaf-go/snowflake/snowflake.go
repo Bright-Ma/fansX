@@ -37,10 +37,11 @@ func (c *Creator) heartCheck() {
 
 				if time.Now().UnixMilli()-t <= 0 {
 					//小步长
-					if time.Now().UnixMilli()-t <= 500 {
+					if t-time.Now().UnixMilli() <= 500 {
 
 						c.working.Store(false)
-						time.Sleep(time.Millisecond * 1000)
+						// 等待双倍时间
+						time.Sleep(time.Second * (time.Duration(t-time.Now().UnixMilli()) / time.Millisecond) * 2)
 						c.working.Store(true)
 						//大步长
 					} else {
@@ -59,10 +60,10 @@ func (c *Creator) heartCheck() {
 
 		if time.Now().UnixMilli()-t <= 0 {
 
-			if time.Now().UnixMilli()-t <= 500 {
+			if t-time.Now().UnixMilli() <= 500 {
 
 				c.working.Store(false)
-				time.Sleep(time.Millisecond * 1000)
+				time.Sleep(time.Second * (time.Duration(t-time.Now().UnixMilli()) / time.Millisecond) * 2)
 				c.working.Store(true)
 
 			} else {

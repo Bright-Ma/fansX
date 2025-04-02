@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bilibili/pkg/hotkeys/hotkey"
+	"bilibili/pkg/hotkey-go/hotkey"
 	"math/rand"
 	"strconv"
 )

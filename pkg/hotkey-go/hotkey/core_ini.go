@@ -2,7 +2,7 @@ package hotkey
 
 import (
 	cshash "bilibili/pkg/consistenthash"
-	"bilibili/pkg/hotkeys/model"
+	"bilibili/pkg/hotkey-go/model"
 	"context"
 	"encoding/json"
 	"github.com/coocood/freecache"

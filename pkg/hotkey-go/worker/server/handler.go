@@ -1,8 +1,8 @@
 package server
 
 import (
-	"bilibili/pkg/hotkeys/model"
-	"bilibili/pkg/hotkeys/worker/group"
+	"bilibili/pkg/hotkey-go/model"
+	"bilibili/pkg/hotkey-go/worker/group"
 	"encoding/json"
 	"fmt"
 	"github.com/panjf2000/gnet"
@@ -20,6 +20,7 @@ func (h *Handler) OnOpened(c gnet.Conn) (out []byte, action gnet.Action) {
 	return
 }
 
+// React tcp报文的处理
 func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Action) {
 	msg := &model.ClientMessage{}
 	err := json.Unmarshal(packet, msg)
@@ -61,6 +62,7 @@ func (h *Handler) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	return gnet.None
 }
 
+// handPing 对ping包的处理，重置时间戳，回复pong
 func (h *Handler) handPing(c gnet.Conn) (out []byte, action gnet.Action) {
 	inter := c.Context()
 	if inter == nil {
@@ -79,6 +81,7 @@ func (h *Handler) handPing(c gnet.Conn) (out []byte, action gnet.Action) {
 	return model.ServerPongMessage, gnet.None
 }
 
+// handPong 对pong包的处理，重置时间戳，由于服务端不主动发送ping，故此函数一般不会调用
 func (h *Handler) handPong(c gnet.Conn) (out []byte, action gnet.Action) {
 	inter := c.Context()
 	if inter == nil {
@@ -97,6 +100,7 @@ func (h *Handler) handPong(c gnet.Conn) (out []byte, action gnet.Action) {
 	return nil, gnet.None
 }
 
+// HandGroup 处理设置group的报文，将该连接加入到groupMap中
 func (h *Handler) HandGroup(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
 	g, ok := group.GetGroupMap().Get(msg.GroupName)
 	if !ok {
@@ -110,6 +114,7 @@ func (h *Handler) HandGroup(msg *model.ClientMessage, c gnet.Conn) (out []byte, 
 	return nil, gnet.None
 }
 
+// HandAdd 处理go程序发送的key以及访问次数
 func (h *Handler) HandAdd(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
 	inter := c.Context()
 	if inter == nil {
@@ -138,6 +143,7 @@ func (h *Handler) HandAdd(msg *model.ClientMessage, c gnet.Conn) (out []byte, ac
 	return nil, gnet.None
 }
 
+// HandDel 不再使用
 func (h *Handler) HandDel(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
 	inter := c.Context()
 	if inter == nil {
@@ -161,6 +167,7 @@ func (h *Handler) HandDel(msg *model.ClientMessage, c gnet.Conn) (out []byte, ac
 	return nil, gnet.None
 }
 
+// Tick 心跳处理
 func (h *Handler) Tick() (time.Duration, gnet.Action) {
 
 	mp := group.GetGroupMap().Items()
@@ -168,5 +175,5 @@ func (h *Handler) Tick() (time.Duration, gnet.Action) {
 		v.Tick()
 	}
 
-	return time.Second * 30, gnet.None
+	return time.Second * 15, gnet.None
 }
