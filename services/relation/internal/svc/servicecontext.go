@@ -2,8 +2,8 @@ package svc
 
 import (
 	"bilibili/common/lua"
-	leaf "bilibili/common/middleware/leaf-go"
 	"bilibili/common/util"
+	leaf "bilibili/pkg/leaf-go"
 	"bilibili/services/relation/internal/config"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
