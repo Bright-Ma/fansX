@@ -30,21 +30,14 @@ func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Act
 	}
 	if msg.Type == model.Ping {
 		return h.handPing(c)
-
 	} else if msg.Type == model.Pong {
 		return h.handPong(c)
-
 	} else if msg.Type == model.Group {
 		return h.HandGroup(msg, c)
-
 	} else if msg.Type == model.AddKey {
 		_ = h.pool.Submit(func() { h.HandAdd(msg, c) })
-		return nil, gnet.None
-
 	} else if msg.Type == model.DelKey {
 		_ = h.pool.Submit(func() { h.HandDel(msg, c) })
-		return nil, gnet.None
-
 	} else {
 		slog.Warn("unKnow message:" + fmt.Sprintln(msg))
 	}
@@ -55,8 +48,6 @@ func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Act
 func (h *Handler) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		slog.Error(err.Error())
-	} else {
-		slog.Debug("connection closed")
 	}
 
 	return gnet.None
@@ -143,7 +134,6 @@ func (h *Handler) HandAdd(msg *model.ClientMessage, c gnet.Conn) (out []byte, ac
 	return nil, gnet.None
 }
 
-// HandDel 不再使用
 func (h *Handler) HandDel(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
 	inter := c.Context()
 	if inter == nil {
@@ -162,8 +152,12 @@ func (h *Handler) HandDel(msg *model.ClientMessage, c gnet.Conn) (out []byte, ac
 		keys[i] = k
 		i++
 	}
+	g, ok := group.GetGroupMap().Get(msg.GroupName)
+	if !ok {
+		return nil, gnet.None
+	}
+	g.Send(model.DelKey, keys)
 
-	ctx.group.Send(model.DelKey, keys)
 	return nil, gnet.None
 }
 

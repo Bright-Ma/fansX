@@ -36,9 +36,9 @@ func (l *ListFollowingLogic) ListFollowing(in *relationRpc.ListFollowingReq) (*r
 	db := l.svcCtx.DB
 	executor := l.svcCtx.Executor
 
-	logger.Info("listFollowing", "userid", in.UserId, "all", in.All, "limit", in.Limit, "offset", in.Offset)
-
 	key := "Following:" + strconv.FormatInt(in.UserId, 10)
+
+	logger.Info("listFollowing", "userid", in.UserId, "all", in.All, "limit", in.Limit, "offset", in.Offset)
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

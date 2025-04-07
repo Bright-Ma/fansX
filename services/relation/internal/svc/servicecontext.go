@@ -3,13 +3,16 @@ package svc
 import (
 	"bilibili/common/lua"
 	"bilibili/common/util"
+	"bilibili/pkg/hotkey-go/hotkey"
 	leaf "bilibili/pkg/leaf-go"
 	"bilibili/services/relation/internal/config"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
+	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
+	"time"
 )
 
 type ServiceContext struct {
@@ -20,6 +23,7 @@ type ServiceContext struct {
 	Logger   *slog.Logger
 	Single   *singleflight.Group
 	Executor *lua.Executor
+	HotKey   *hotkey.Core
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -56,7 +60,31 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err.Error())
 	}
 
-	return &ServiceContext{
+	del := make(chan string, 1024*64)
+
+	core, err := hotkey.NewCore(hotkey.Config{
+		Model:      hotkey.ModelCache,
+		GroupName:  "relation.rpc",
+		CacheSize:  1024 * 1024 * 512,
+		HotKeySize: 1024 * 1024 * 64,
+		EtcdConfig: etcd.Config{
+			Endpoints:   []string{"127.0.0.1:4379"},
+			DialTimeout: time.Second * 3,
+		},
+		DelChan: del,
+		HotChan: nil,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	go func() {
+		for key := range del {
+			core.Del(key)
+		}
+	}()
+
+	svc := &ServiceContext{
 		Config:   c,
 		DB:       db,
 		RClient:  r,
@@ -64,5 +92,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Logger:   logger,
 		Executor: e,
 		Single:   &singleflight.Group{},
+		HotKey:   core,
 	}
+
+	return svc
 }

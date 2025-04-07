@@ -34,10 +34,11 @@ func (l *GetFollowerNumsLogic) GetFollowerNums(in *relationRpc.GetFollowerNumsRe
 	logger := util.SetTrace(context.Background(), l.svcCtx.Logger)
 	client := l.svcCtx.RClient
 
+	key := "FollowerNums:" + strconv.FormatInt(in.UserId, 10)
+
 	logger.Info("GetFollowerNums", "userid", in.UserId)
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	key := "FollowerNums:" + strconv.FormatInt(in.UserId, 10)
 
 	res, err := client.Get(timeout, key).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {

@@ -63,21 +63,13 @@ func (c *conn) process() {
 		if msg.Type == model.Ping {
 			c.last = time.Now().Unix()
 			c.write(model.ClientPongMessage)
-
 		} else if msg.Type == model.Pong {
 			c.last = time.Now().Unix()
 			continue
-
 		} else if msg.Type == model.AddKey {
-			for _, v := range msg.Keys {
-				_ = c.core.hotkeys.Set([]byte(v), []byte{}, 60)
-			}
-
+			c.core.addProcess(c.core, msg)
 		} else if msg.Type == model.DelKey {
-			for _, v := range msg.Keys {
-				_ = c.core.hotkeys.Del([]byte(v))
-			}
-
+			c.core.delProcess(c.core, msg)
 		} else {
 			slog.Error("unKnow message type")
 		}

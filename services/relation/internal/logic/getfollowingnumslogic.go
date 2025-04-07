@@ -4,6 +4,7 @@ import (
 	"bilibili/common/util"
 	"bilibili/internal/model/database"
 	"context"
+	"encoding/binary"
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"strconv"
@@ -33,11 +34,28 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 	db := l.svcCtx.DB
 	logger := util.SetTrace(context.Background(), l.svcCtx.Logger)
 	client := l.svcCtx.RClient
-	logger.Info("GetFollowingNums", "userid", in.UserId)
+	core := l.svcCtx.HotKey
 
+	key := "FollowingNums:" + strconv.FormatInt(in.UserId, 10)
+
+	logger.Info("GetFollowingNums", "userid", in.UserId)
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	key := "FollowingNums:" + strconv.FormatInt(in.UserId, 10)
+
+	var nums int64
+	v, ok := core.Get(key)
+	if ok {
+		logger.Debug("get following nums from local cache")
+		_, err := binary.Decode(v, binary.LittleEndian, &nums)
+		if err == nil {
+			return &relationRpc.GetFollowingNumsResp{Nums: nums}, nil
+		}
+		logger.Warn("binary decode:" + err.Error())
+	} else {
+		logger.Debug("not found following nums from local cache")
+	}
+
+	hot := core.IsHotKey(key)
 
 	res, err := client.Get(timeout, key).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
@@ -51,6 +69,9 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 			return nil, err
 		}
 		logger.Debug("get following nums from redis")
+		if hot {
+			core.EncodeSet(key, nums, 60)
+		}
 		return &relationRpc.GetFollowingNumsResp{Nums: nums}, nil
 	}
 
@@ -69,6 +90,9 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 		err = client.Set(timeout, key, record.Nums, time.Minute*15).Err()
 		if err != nil {
 			logger.Warn("set following nums to redis:" + err.Error())
+		}
+		if hot {
+			core.EncodeSet(key, record.Nums, 60)
 		}
 		return record, nil
 	})

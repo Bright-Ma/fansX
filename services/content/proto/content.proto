@@ -1,0 +1,23 @@
+syntax="proto3";
+package contentRpc;
+option go_package = "./contentRpc";
+import "google/protobuf/empty.proto";
+
+service ContentService {
+rpc publish(publishReq)returns(empty);
+}
+
+message publishReq{
+  int64 userId=1;
+  string title =2;
+  string shortText=4;
+  string longTextUri =5;
+  repeated string photoUri=3;
+  repeated string videoUriList =6;
+}
+
+message empty{
+}
+
+
+
