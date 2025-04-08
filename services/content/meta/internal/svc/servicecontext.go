@@ -3,7 +3,7 @@ package svc
 import (
 	"bilibili/common/util"
 	leaf "bilibili/pkg/leaf-go"
-	"bilibili/services/content/internal/config"
+	"bilibili/services/content/meta/internal/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"

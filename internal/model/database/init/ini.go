@@ -4,7 +4,6 @@ import (
 	"bilibili/internal/model/database"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func main() {
@@ -13,12 +12,14 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	err = client.AutoMigrate(&database.Follower{}, &database.Following{}, &database.FollowerNums{}, &database.FollowingNums{})
-	if err != nil {
-		panic(err.Error())
-	}
-	tx := client.Begin()
-	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(&database.FollowingNums{}, 1).Error
+	err = client.AutoMigrate(
+		&database.Follower{},
+		&database.Following{},
+		&database.FollowerNums{},
+		&database.FollowingNums{},
+		&database.VisibleContentInfo{},
+		&database.InvisibleContentInfo{},
+	)
 	if err != nil {
 		panic(err.Error())
 	}

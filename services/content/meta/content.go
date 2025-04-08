@@ -1,13 +1,12 @@
 package main
 
 import (
+	"bilibili/services/content/meta/internal/config"
+	"bilibili/services/content/meta/internal/server"
+	"bilibili/services/content/meta/internal/svc"
+	"bilibili/services/content/meta/proto/metaContentRpc"
 	"flag"
 	"fmt"
-
-	"bilibili/services/content/internal/config"
-	"bilibili/services/content/internal/server"
-	"bilibili/services/content/internal/svc"
-	"bilibili/services/content/proto/contentRpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"
@@ -26,7 +25,7 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
-		contentRpc.RegisterContentServiceServer(grpcServer, server.NewContentServiceServer(ctx))
+		metaContentRpc.RegisterMetaContentServiceServer(grpcServer, server.NewMetaContentServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)

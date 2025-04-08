@@ -42,9 +42,9 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	var nums int64
 	v, ok := core.Get(key)
 	if ok {
+		var nums int64
 		logger.Debug("get following nums from local cache")
 		_, err := binary.Decode(v, binary.LittleEndian, &nums)
 		if err == nil {
@@ -63,6 +63,7 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 		return nil, err
 	}
 	if err == nil {
+
 		nums, err := strconv.ParseInt(res, 10, 64)
 		if err != nil {
 			logger.Error("parse following nums:" + err.Error())
@@ -70,7 +71,13 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 		}
 		logger.Debug("get following nums from redis")
 		if hot {
-			core.EncodeSet(key, nums, 60)
+			buf := make([]byte, 8)
+			_, err = binary.Encode(buf, binary.LittleEndian, nums)
+			if err != nil {
+				logger.Error("binary encode following nums:" + err.Error())
+				return nil, err
+			}
+			core.Set(key, buf, 60)
 		}
 		return &relationRpc.GetFollowingNumsResp{Nums: nums}, nil
 	}
@@ -92,7 +99,13 @@ func (l *GetFollowingNumsLogic) GetFollowingNums(in *relationRpc.GetFollowingNum
 			logger.Warn("set following nums to redis:" + err.Error())
 		}
 		if hot {
-			core.EncodeSet(key, record.Nums, 60)
+			buf := make([]byte, 8)
+			_, err = binary.Encode(buf, binary.LittleEndian, record.Nums)
+			if err != nil {
+				logger.Error("binary encode following nums:" + err.Error())
+				return nil, err
+			}
+			core.Set(key, buf, 60)
 		}
 		return record, nil
 	})
