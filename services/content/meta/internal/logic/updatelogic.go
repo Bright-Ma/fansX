@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/zeromicro/go-zero/core/logx"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -35,11 +36,15 @@ func (l *UpdateLogic) Update(in *metaContentRpc.UpdateReq) (*metaContentRpc.Empt
 	tx := db.Begin()
 	record := &database.InvisibleContentInfo{}
 
-	err := db.Clauses(clause.Locking{Strength: "UPDATE"}).Take(record, in.ContentId).
-		Where("status <> ?", database.ContentStatusDelete).Error
-	if err != nil {
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("status <> ?", database.ContentStatusDelete).Take(record, in.ContentId).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		tx.Commit()
 		logger.Error("search content failed:" + err.Error())
+		return nil, err
+	} else if errors.Is(err, gorm.ErrRecordNotFound) {
+		tx.Commit()
+		logger.Info("record not found")
 		return nil, err
 	}
 

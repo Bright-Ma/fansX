@@ -23,7 +23,7 @@ if (#data)%2~=0
     then return {err="data nums should be 2*x"}
 end
 
-exists=redis.call("EXISTS",key)
+local exists=redis.call("EXISTS",key)
 if exists==1
     then
     if del=="true"

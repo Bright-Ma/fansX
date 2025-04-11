@@ -2,7 +2,7 @@ package main
 
 import (
 	"bilibili/common/lua"
-	luaFollowing "bilibili/mq/follower/lua"
+	"bilibili/mq/relation/follower/lua"
 	"context"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"

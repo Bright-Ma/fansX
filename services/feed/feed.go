@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bilibili/services/content/meta/internal/config"
-	"bilibili/services/content/meta/internal/server"
-	"bilibili/services/content/meta/internal/svc"
-	"bilibili/services/content/meta/proto/metaContentRpc"
 	"flag"
 	"fmt"
+
+	"bilibili/services/feed/internal/config"
+	"bilibili/services/feed/internal/server"
+	"bilibili/services/feed/internal/svc"
+	"bilibili/services/feed/proto/feedRpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"
@@ -15,7 +16,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-var configFile = flag.String("f", "etc/content.yaml", "the config file")
+var configFile = flag.String("f", "etc/feed.yaml", "the config file")
 
 func main() {
 	flag.Parse()
@@ -25,7 +26,7 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
-		metaContentRpc.RegisterMetaContentServiceServer(grpcServer, server.NewMetaContentServiceServer(ctx))
+		feedRpc.RegisterFeedServiceServer(grpcServer, server.NewFeedServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)

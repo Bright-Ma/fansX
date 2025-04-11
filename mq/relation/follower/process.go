@@ -4,7 +4,7 @@ import (
 	luaString "bilibili/common/lua/script/string"
 	"bilibili/internal/model/database"
 	"bilibili/internal/model/mq"
-	luaFollowing "bilibili/mq/follower/lua"
+	"bilibili/mq/relation/follower/lua"
 	"context"
 	"gorm.io/gorm"
 	"strconv"

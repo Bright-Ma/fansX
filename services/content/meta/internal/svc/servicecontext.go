@@ -29,8 +29,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	creator, err := leaf.Init(&leaf.Config{
 		Model: leaf.Snowflake,
 		SnowflakeConfig: &leaf.SnowflakeConfig{
-			CreatorName: "content",
-			Addr:        "addr",
+			CreatorName: "metacontent.rpc",
+			Addr:        "1jian10.cn:23020",
 			EtcdAddr:    []string{"1jian10.cn:4379"},
 		},
 	})

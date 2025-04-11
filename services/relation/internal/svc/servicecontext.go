@@ -41,8 +41,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	creator, err := leaf.Init(&leaf.Config{
 		Model: leaf.Snowflake,
 		SnowflakeConfig: &leaf.SnowflakeConfig{
-			CreatorName: "relation",
-			Addr:        "addr",
+			CreatorName: "relation.rpc",
+			Addr:        "1jian10.cn:23010",
 			EtcdAddr:    []string{"127.0.0.1:4379"},
 		},
 	})
@@ -50,7 +50,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err.Error())
 	}
 
-	logger, err := util.InitLog("RelationService", slog.LevelDebug)
+	logger, err := util.InitLog("relation.rpc", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}

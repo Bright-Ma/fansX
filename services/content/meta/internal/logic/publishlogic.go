@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/zeromicro/go-zero/core/logx"
+	"time"
 )
 
 type PublishLogic struct {
@@ -26,9 +27,11 @@ func NewPublishLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PublishLo
 }
 
 func (l *PublishLogic) Publish(in *metaContentRpc.PublishReq) (*metaContentRpc.Empty, error) {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
 
 	creator := l.svcCtx.Creator
-	db := l.svcCtx.DB
+	db := l.svcCtx.DB.WithContext(timeout)
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
 
 	logger.Info("user publish", "userId", in.UserId)
@@ -52,6 +55,7 @@ func (l *PublishLogic) Publish(in *metaContentRpc.PublishReq) (*metaContentRpc.E
 	record := database.InvisibleContentInfo{
 		Id:           id,
 		Version:      1,
+		Status:       database.ContentStatusCheck,
 		Userid:       in.UserId,
 		Title:        in.Title,
 		PhotoUriList: string(p),
