@@ -4,6 +4,7 @@ import (
 	"bilibili/common/lua"
 	"bilibili/common/util"
 	bigcache "bilibili/internal/cache"
+	"bilibili/services/content/public/proto/publicContentRpc"
 	"bilibili/services/feed/internal/config"
 	"bilibili/services/relation/proto/relationRpc"
 	"context"
@@ -22,7 +23,8 @@ type ServiceContext struct {
 	Logger         *slog.Logger
 	Executor       *lua.Executor
 	Cache          *bigcache.Cache
-	RelationClient *relationRpc.RelationServiceClient
+	RelationClient relationRpc.RelationServiceClient
+	ContentClient  publicContentRpc.PublicContentServiceClient
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -71,7 +73,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Logger:         logger,
 		Executor:       e,
 		Cache:          cache,
-		RelationClient: &relationClient,
+		RelationClient: relationClient,
 	}
 
 	return svc

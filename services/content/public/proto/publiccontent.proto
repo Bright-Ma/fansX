@@ -1,0 +1,20 @@
+syntax = "proto3";
+package publicContentRpc;
+option go_package = "./publicContentRpc";
+import "google/protobuf/empty.proto";
+
+service PublicContentService {
+  rpc getUserContentList(getUserContentListReq)returns(getUserContentListResp);
+
+}
+
+message getUserContentListReq{
+  int64 id = 1;
+  int64 timeStamp = 2;
+  int64 limit = 3;
+}
+
+message getUserContentListResp{
+  repeated int64 id = 1;
+  repeated int64 timeStamp=2;
+}
