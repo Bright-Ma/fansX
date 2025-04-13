@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	FeedService_PullLatest_FullMethodName = "/feedRpc.feedService/pullLatest"
 	FeedService_Pull_FullMethodName       = "/feedRpc.feedService/pull"
-	FeedService_PullOutBox_FullMethodName = "/feedRpc.feedService/pullOutBox"
 )
 
 // FeedServiceClient is the client API for FeedService service.
@@ -30,7 +29,6 @@ const (
 type FeedServiceClient interface {
 	PullLatest(ctx context.Context, in *PullLatestReq, opts ...grpc.CallOption) (*PullResp, error)
 	Pull(ctx context.Context, in *PullReq, opts ...grpc.CallOption) (*PullResp, error)
-	PullOutBox(ctx context.Context, in *PullOutBoxReq, opts ...grpc.CallOption) (*PullOutBoxResp, error)
 }
 
 type feedServiceClient struct {
@@ -61,23 +59,12 @@ func (c *feedServiceClient) Pull(ctx context.Context, in *PullReq, opts ...grpc.
 	return out, nil
 }
 
-func (c *feedServiceClient) PullOutBox(ctx context.Context, in *PullOutBoxReq, opts ...grpc.CallOption) (*PullOutBoxResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PullOutBoxResp)
-	err := c.cc.Invoke(ctx, FeedService_PullOutBox_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // FeedServiceServer is the server API for FeedService service.
 // All implementations must embed UnimplementedFeedServiceServer
 // for forward compatibility.
 type FeedServiceServer interface {
 	PullLatest(context.Context, *PullLatestReq) (*PullResp, error)
 	Pull(context.Context, *PullReq) (*PullResp, error)
-	PullOutBox(context.Context, *PullOutBoxReq) (*PullOutBoxResp, error)
 	mustEmbedUnimplementedFeedServiceServer()
 }
 
@@ -93,9 +80,6 @@ func (UnimplementedFeedServiceServer) PullLatest(context.Context, *PullLatestReq
 }
 func (UnimplementedFeedServiceServer) Pull(context.Context, *PullReq) (*PullResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pull not implemented")
-}
-func (UnimplementedFeedServiceServer) PullOutBox(context.Context, *PullOutBoxReq) (*PullOutBoxResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PullOutBox not implemented")
 }
 func (UnimplementedFeedServiceServer) mustEmbedUnimplementedFeedServiceServer() {}
 func (UnimplementedFeedServiceServer) testEmbeddedByValue()                     {}
@@ -154,24 +138,6 @@ func _FeedService_Pull_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FeedService_PullOutBox_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PullOutBoxReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeedServiceServer).PullOutBox(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FeedService_PullOutBox_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).PullOutBox(ctx, req.(*PullOutBoxReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // FeedService_ServiceDesc is the grpc.ServiceDesc for FeedService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -186,10 +152,6 @@ var FeedService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "pull",
 			Handler:    _FeedService_Pull_Handler,
-		},
-		{
-			MethodName: "pullOutBox",
-			Handler:    _FeedService_PullOutBox_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

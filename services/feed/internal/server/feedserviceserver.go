@@ -32,8 +32,3 @@ func (s *FeedServiceServer) Pull(ctx context.Context, in *feedRpc.PullReq) (*fee
 	l := logic.NewPullLogic(ctx, s.svcCtx)
 	return l.Pull(in)
 }
-
-func (s *FeedServiceServer) PullOutBox(ctx context.Context, in *feedRpc.PullOutBoxReq) (*feedRpc.PullOutBoxResp, error) {
-	l := logic.NewPullOutBoxLogic(ctx, s.svcCtx)
-	return l.PullOutBox(in)
-}

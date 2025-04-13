@@ -14,16 +14,13 @@ import (
 )
 
 type (
-	PullLatestReq  = feedRpc.PullLatestReq
-	PullOutBoxReq  = feedRpc.PullOutBoxReq
-	PullOutBoxResp = feedRpc.PullOutBoxResp
-	PullReq        = feedRpc.PullReq
-	PullResp       = feedRpc.PullResp
+	PullLatestReq = feedRpc.PullLatestReq
+	PullReq       = feedRpc.PullReq
+	PullResp      = feedRpc.PullResp
 
 	FeedService interface {
 		PullLatest(ctx context.Context, in *PullLatestReq, opts ...grpc.CallOption) (*PullResp, error)
 		Pull(ctx context.Context, in *PullReq, opts ...grpc.CallOption) (*PullResp, error)
-		PullOutBox(ctx context.Context, in *PullOutBoxReq, opts ...grpc.CallOption) (*PullOutBoxResp, error)
 	}
 
 	defaultFeedService struct {
@@ -45,9 +42,4 @@ func (m *defaultFeedService) PullLatest(ctx context.Context, in *PullLatestReq, 
 func (m *defaultFeedService) Pull(ctx context.Context, in *PullReq, opts ...grpc.CallOption) (*PullResp, error) {
 	client := feedRpc.NewFeedServiceClient(m.cli.Conn())
 	return client.Pull(ctx, in, opts...)
-}
-
-func (m *defaultFeedService) PullOutBox(ctx context.Context, in *PullOutBoxReq, opts ...grpc.CallOption) (*PullOutBoxResp, error) {
-	client := feedRpc.NewFeedServiceClient(m.cli.Conn())
-	return client.PullOutBox(ctx, in, opts...)
 }

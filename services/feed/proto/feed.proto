@@ -6,7 +6,6 @@ service feedService{
   rpc pullLatest(pullLatestReq)returns(pullResp);
   rpc pull(pullReq)returns(pullResp);
 
-  rpc pullOutBox(pullOutBoxReq)returns(pullOutBoxResp);
 }
 
 message pullLatestReq{
@@ -24,14 +23,4 @@ message pullResp{
   repeated int64 userId =1;
   repeated int64 contentId=2;
   repeated int64 timeStamp=3;
-}
-
-message pullOutBoxReq{
-  int64 userId=1;
-  int64 limit=2;
-}
-
-message pullOutBoxResp{
-  repeated int64 contentId=1;
-  repeated int64 timeStamp=2;
 }

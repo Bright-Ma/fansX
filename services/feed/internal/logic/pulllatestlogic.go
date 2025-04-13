@@ -6,6 +6,7 @@ import (
 	"bilibili/common/util"
 	bigcache "bilibili/internal/cache"
 	"bilibili/services/content/public/proto/publicContentRpc"
+	interlua "bilibili/services/feed/internal/lua"
 	"bilibili/services/relation/proto/relationRpc"
 	"context"
 	"errors"
@@ -41,7 +42,6 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 	defer cancel()
 
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
-	client := l.svcCtx.RClient
 	cache := l.svcCtx.Cache
 	relationClient := l.svcCtx.RelationClient
 	contentClient := l.svcCtx.ContentClient
@@ -59,48 +59,50 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 	}
 
 	list := make([][]int64, 0)
-
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
-	inter, err := client.Eval(timeout, `
-local key=KEYS[1]
-local limit=ARGV[1]
 
-local exists=redis.call("EXISTS",key)
-if exists==0
-    then return nil
-end
-
-local res=redis.call("ZREVRANGE",0,tonumber(limit),"WITHSCORES")
-return res
-`, []string{inbox}, in.Limit).Result()
+	inter, err := executor.Execute(timeout, interlua.GetRevRangeScript(), []string{inbox}, in.Limit).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
+
 		logger.Error("get inbox:" + err.Error())
 		return nil, err
+
 	} else if errors.Is(err, redis.Nil) {
-		err = searchAll(timeout, logger, in.Limit, in.UserId, resp.UserId, list, cache, executor, contentClient)
+
+		logger.Info("not find inbox")
+		err = searchAll(timeout, logger, in.UserId, resp.UserId, list, cache, executor, contentClient)
 		if err != nil {
 			return nil, err
 		}
+
 	} else {
+
+		logger.Info("find inbox,to get out box")
 		searchBig(timeout, logger, in.Limit, resp.UserId, list, cache, contentClient)
 		interSlice := inter.([]interface{})
+
 		for i := 0; i < len(interSlice); i += 2 {
 			str := strings.Split(interSlice[i].(string), ";")
+
 			userId, _ := strconv.ParseInt(str[0], 10, 64)
 			contentId, _ := strconv.ParseInt(str[1], 10, 64)
 			score, _ := strconv.ParseInt(interSlice[i+1].(string), 10, 64)
+
 			list = append(list, []int64{userId, contentId, score})
 		}
+
 	}
 
 	sort.Slice(list, func(i, j int) bool {
 		return list[i][2] > list[j][2]
 	})
+
 	res := &feedRpc.PullResp{
 		UserId:    make([]int64, in.Limit),
 		ContentId: make([]int64, in.Limit),
 		TimeStamp: make([]int64, in.Limit),
 	}
+
 	for i := 0; i < int(in.Limit) && i < len(list); i++ {
 		res.UserId[i] = list[i][0]
 		res.ContentId[i] = list[i][1]
@@ -110,14 +112,26 @@ return res
 	return res, nil
 }
 
-func searchBig(ctx context.Context, logger *slog.Logger, limit int64, followingId []int64, list [][]int64, cache *bigcache.Cache, contentClient publicContentRpc.PublicContentServiceClient) {
+func searchBig(arguments ...interface{}) {
+
+	ctx := arguments[0].(context.Context)
+	logger := arguments[1].(*slog.Logger)
+	limit := arguments[2].(int64)
+	followingId := arguments[3].([]int64)
+	list := arguments[4].([][]int64)
+	cache := arguments[5].(*bigcache.Cache)
+	client := arguments[6].(publicContentRpc.PublicContentServiceClient)
+
 	for _, id := range followingId {
+
 		if cache.IsBig(id) {
-			resp, err := contentClient.GetUserContentList(ctx, &publicContentRpc.GetUserContentListReq{
+
+			resp, err := client.GetUserContentList(ctx, &publicContentRpc.GetUserContentListReq{
 				Id:        id,
 				TimeStamp: time.Now().Unix(),
 				Limit:     limit,
 			})
+
 			if err != nil {
 				logger.Error("get user content list:"+err.Error(), "userId", id)
 			} else {
@@ -125,19 +139,33 @@ func searchBig(ctx context.Context, logger *slog.Logger, limit int64, followingI
 					list = append(list, []int64{id, v, resp.TimeStamp[i]})
 				}
 			}
+
 		}
+
 	}
 	return
 }
 
-func searchAll(ctx context.Context, logger *slog.Logger, limit int64, userId int64, followingId []int64, list [][]int64, cache *bigcache.Cache, executor *lua.Executor, contentClient publicContentRpc.PublicContentServiceClient) error {
-	build := make([]string, 0)
+func searchAll(arguments ...interface{}) error {
+	ctx := arguments[0].(context.Context)
+	logger := arguments[1].(*slog.Logger)
+	userId := arguments[2].(int64)
+	followingId := arguments[3].([]int64)
+	list := arguments[4].([][]int64)
+	cache := arguments[5].(*bigcache.Cache)
+	executor := arguments[6].(*lua.Executor)
+	client := arguments[7].(publicContentRpc.PublicContentServiceClient)
+
+	build := make([][]int64, 0)
+
 	for _, id := range followingId {
-		resp, err := contentClient.GetUserContentList(ctx, &publicContentRpc.GetUserContentListReq{
+
+		resp, err := client.GetUserContentList(ctx, &publicContentRpc.GetUserContentListReq{
 			Id:        id,
 			TimeStamp: time.Now().Unix(),
-			Limit:     limit,
+			Limit:     100,
 		})
+
 		if err != nil {
 			logger.Error("get user content list:"+err.Error(), "userId", id)
 			return err
@@ -145,16 +173,26 @@ func searchAll(ctx context.Context, logger *slog.Logger, limit int64, userId int
 			for i, v := range resp.Id {
 				list = append(list, []int64{id, v, resp.TimeStamp[i]})
 				if !cache.IsBig(id) {
-					build = append(build, strconv.FormatInt(resp.TimeStamp[i], 10))
-					build = append(build, strconv.FormatInt(id, 10)+";"+strconv.FormatInt(v, 10))
+					build = append(build, []int64{id, v, resp.TimeStamp[i]})
 				}
 			}
 		}
+
 	}
 
-	err := executor.Execute(ctx, luaZset.GetCreate(), []string{"inbox:" + strconv.FormatInt(userId, 10), "false", "864000"}, build).Err()
+	sort.Slice(build, func(i, j int) bool {
+		return build[i][2] > build[j][2]
+	})
+
+	argv := make([]string, min(1000, len(build)*2))
+	for i := 0; i < len(argv); i += 2 {
+		argv[i] = strconv.FormatInt(build[i/2][2], 10)
+		argv[i+1] = strconv.FormatInt(build[i/2][0], 10) + ";" + strconv.FormatInt(build[i/2][1], 10)
+	}
+
+	err := executor.Execute(ctx, luaZset.GetCreate(), []string{"inbox:" + strconv.FormatInt(userId, 10), "false", "864000"}, argv).Err()
 	if err != nil {
-		logger.Error("execute create zset:" + err.Error())
+		logger.Error("execute create ZSet:" + err.Error())
 	}
 
 	return nil
