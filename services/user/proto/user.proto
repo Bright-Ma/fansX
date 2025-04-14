@@ -1,0 +1,36 @@
+syntax = "proto3";
+package UserRpc;
+option go_package = "./UserRpc";
+
+service UserService{
+  rpc Register(RegisterReq)returns (RegisterResp);
+  rpc LoginWithPhone(LoginWithPhoneReq)returns(LoginWithPhoneResp);
+  rpc Logout(LogoutReq)returns(LogoutResp);
+}
+
+message RegisterReq{
+  string phone =1;
+  string code=2;
+  string userName =3;
+  string passWord =4;
+}
+
+message RegisterResp{
+}
+
+message LoginReq{
+
+}
+
+message LoginResp{
+
+}
+
+message LogoutReq{
+
+}
+
+message LogoutResp{
+
+}
+

@@ -1,0 +1,78 @@
+syntax = "proto3";
+package relationRpc;
+option go_package = "./relationRpc";
+import "google/protobuf/empty.proto";
+
+service RelationService {
+  rpc follow(followReq)returns(Empty);
+  rpc cancelFollow(cancelFollowReq)returns(Empty);
+  rpc listFollowing(listFollowingReq)returns(listFollowingResp);
+  rpc isFollowing(isFollowingReq)returns(isFollowingResp);
+  rpc listFollower(listFollowerReq)returns(listFollowerResp);
+  rpc getFollowingNums(getFollowingNumsReq)returns(getFollowingNumsResp);
+  rpc getFollowerNums(getFollowerNumsReq)returns(getFollowerNumsResp);
+}
+
+message followReq {
+  int64 userId = 1;
+  int64 followId = 2;
+}
+
+message cancelFollowReq{
+  int64 userId = 1;
+  int64 followId = 2;
+}
+
+message listFollowingReq{
+  int64 userId = 1;
+  bool all = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message listFollowingResp{
+  repeated int64 userId = 1;
+}
+
+message isFollowingReq{
+  int64 userId = 1;
+  int64 followId = 2;
+}
+
+message isFollowingResp{
+  bool is = 1;
+}
+
+message listFollowerReq{
+  int64 userId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message listFollowerResp{
+  repeated int64 userId = 1;
+}
+
+message getFollowerNumsReq{
+  int64 userId=1;
+}
+
+message getFollowerNumsResp{
+  int64 nums=1;
+}
+
+message getFollowingNumsReq{
+  int64 userId=1;
+}
+
+message getFollowingNumsResp{
+  int64 nums=1;
+}
+
+message Empty{
+}
+
+
+
+
+

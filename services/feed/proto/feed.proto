@@ -1,0 +1,26 @@
+syntax = "proto3";
+package feedRpc;
+option go_package = "./feedRpc";
+
+service feedService{
+  rpc pullLatest(pullLatestReq)returns(pullResp);
+  rpc pull(pullReq)returns(pullResp);
+
+}
+
+message pullLatestReq{
+  int64 userId =1;
+  int64 limit=2;
+}
+
+message pullReq{
+  int64 userId=1;
+  int64 limit=2;
+  int64 timeStamp =3;
+}
+
+message pullResp{
+  repeated int64 userId =1;
+  repeated int64 contentId=2;
+  repeated int64 timeStamp=3;
+}

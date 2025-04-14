@@ -1,0 +1,18 @@
+syntax ="proto3";
+package InnerGetWay;
+option go_package = "./InnerGetWay";
+
+service PushMessageService{
+  rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+}
+
+message PushMessageReq{
+  repeated int64 UserId=1;
+  string PayLoad =2;
+  string EncodeType =3;
+  bool Global =4;
+}
+
+message PushMessageResp{
+
+}

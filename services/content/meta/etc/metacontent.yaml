@@ -1,0 +1,16 @@
+Name: metacontent.rpc
+ListenOn: 0.0.0.0:23020
+Etcd:
+  Hosts:
+  - 127.0.0.1:4379
+  Key: metacontent.rpc
+Telemetry:
+  Name: metacontent.rpc
+  EndPoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Catcher: jaeger
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 33020
+  Path: /metrics
