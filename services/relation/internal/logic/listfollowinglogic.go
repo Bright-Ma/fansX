@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	luaZset "fansX/common/lua/script/zset"
 	"fansX/common/util"
 	"fansX/internal/model/database"
 	"github.com/redis/go-redis/v9"
@@ -50,7 +51,7 @@ func (l *ListFollowingLogic) ListFollowing(in *relationRpc.ListFollowingReq) (*r
 
 	table, err := executor.Execute(timeout, luaZset.GetRevRange(), []string{key}, all, in.Offset, in.Limit+in.Offset-1).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
-		logger.Error("execute lua zset-revrange:" + err.Error())
+		logger.Error("execute lua ZSet revRange:" + err.Error())
 		return nil, err
 	}
 
