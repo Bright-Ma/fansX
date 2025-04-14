@@ -1,10 +1,10 @@
 package hotkey
 
 import (
-	cshash "bilibili/pkg/consistenthash"
-	"bilibili/pkg/hotkey-go/model"
 	"context"
 	"encoding/json"
+	cshash "fansX/pkg/consistenthash"
+	"fansX/pkg/hotkey-go/model"
 	"github.com/coocood/freecache"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	etcd "go.etcd.io/etcd/client/v3"

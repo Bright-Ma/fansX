@@ -7,7 +7,7 @@ package feedservice
 import (
 	"context"
 
-	"bilibili/services/feed/proto/feedRpc"
+	"fansX/services/feed/proto/feedRpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

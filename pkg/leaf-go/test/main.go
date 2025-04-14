@@ -1,9 +1,9 @@
 package main
 
 import (
-	leaf "bilibili/pkg/leaf-go"
-	"bilibili/pkg/leaf-go/segment"
-	"bilibili/pkg/leaf-go/snowflake"
+	leaf "fansX/pkg/leaf-go"
+	"fansX/pkg/leaf-go/segment"
+	"fansX/pkg/leaf-go/snowflake"
 	"fmt"
 	"sync"
 	"time"

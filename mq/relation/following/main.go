@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bilibili/internal/model/mq"
-	"bilibili/pkg/hotkey-go/hotkey"
 	"context"
 	"encoding/json"
+	"fansX/internal/model/mq"
+	"fansX/pkg/hotkey-go/hotkey"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"

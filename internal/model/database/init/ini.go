@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bilibili/internal/model/database"
+	"fansX/internal/model/database"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

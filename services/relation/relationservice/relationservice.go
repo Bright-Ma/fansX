@@ -7,7 +7,7 @@ package relationservice
 import (
 	"context"
 
-	"bilibili/services/relation/proto/relationRpc"
+	"fansX/services/relation/proto/relationRpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

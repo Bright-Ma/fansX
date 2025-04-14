@@ -1,8 +1,8 @@
 package hotkey
 
 import (
-	"bilibili/pkg/hotkey-go/model"
 	"encoding/json"
+	"fansX/pkg/hotkey-go/model"
 	"log/slog"
 	"net"
 	"sync/atomic"

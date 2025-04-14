@@ -1,9 +1,9 @@
 package snowflake
 
 import (
-	"bilibili/common/util"
 	"context"
 	"errors"
+	"fansX/common/util"
 	"fmt"
 	"github.com/bwmarrin/snowflake"
 	etcd "go.etcd.io/etcd/client/v3"

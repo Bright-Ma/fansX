@@ -1,18 +1,18 @@
 package logic
 
 import (
-	luaZset "bilibili/common/lua/script/zset"
-	"bilibili/common/util"
-	"bilibili/internal/model/database"
 	"context"
 	"errors"
+	luaZset "fansX/common/lua/script/zset"
+	"fansX/common/util"
+	"fansX/internal/model/database"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
 
-	"bilibili/services/relation/internal/svc"
-	"bilibili/services/relation/proto/relationRpc"
+	"fansX/services/relation/internal/svc"
+	"fansX/services/relation/proto/relationRpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

@@ -1,12 +1,12 @@
 package logic
 
 import (
-	"bilibili/common/util"
-	"bilibili/internal/model/database"
-	"bilibili/services/content/meta/internal/svc"
-	"bilibili/services/content/meta/proto/metaContentRpc"
 	"context"
 	"errors"
+	"fansX/common/util"
+	"fansX/internal/model/database"
+	"fansX/services/content/meta/internal/svc"
+	"fansX/services/content/meta/proto/metaContentRpc"
 	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

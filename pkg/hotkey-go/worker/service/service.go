@@ -1,8 +1,8 @@
 package service
 
 import (
-	"bilibili/pkg/hotkey-go/worker/group"
 	"context"
+	"fansX/pkg/hotkey-go/worker/group"
 	"fmt"
 	etcd "go.etcd.io/etcd/client/v3"
 	"log/slog"

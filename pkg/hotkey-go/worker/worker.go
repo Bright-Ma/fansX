@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bilibili/pkg/hotkey-go/worker/server"
-	"bilibili/pkg/hotkey-go/worker/service"
+	"fansX/pkg/hotkey-go/worker/server"
+	"fansX/pkg/hotkey-go/worker/service"
 	"strconv"
 	"time"
 )

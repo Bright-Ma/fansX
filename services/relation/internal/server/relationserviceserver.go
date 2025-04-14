@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"bilibili/services/relation/internal/logic"
-	"bilibili/services/relation/internal/svc"
-	"bilibili/services/relation/proto/relationRpc"
+	"fansX/services/relation/internal/logic"
+	"fansX/services/relation/internal/svc"
+	"fansX/services/relation/proto/relationRpc"
 )
 
 type RelationServiceServer struct {

@@ -1,11 +1,11 @@
 package logic
 
 import (
-	"bilibili/common/util"
-	"bilibili/internal/model/database"
-	"bilibili/services/relation/internal/svc"
-	"bilibili/services/relation/proto/relationRpc"
 	"context"
+	"fansX/common/util"
+	"fansX/internal/model/database"
+	"fansX/services/relation/internal/svc"
+	"fansX/services/relation/proto/relationRpc"
 	"gorm.io/gorm"
 	"time"
 

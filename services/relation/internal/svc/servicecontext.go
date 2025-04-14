@@ -1,11 +1,11 @@
 package svc
 
 import (
-	"bilibili/common/lua"
-	"bilibili/common/util"
-	"bilibili/pkg/hotkey-go/hotkey"
-	leaf "bilibili/pkg/leaf-go"
-	"bilibili/services/relation/internal/config"
+	"fansX/common/lua"
+	"fansX/common/util"
+	"fansX/pkg/hotkey-go/hotkey"
+	leaf "fansX/pkg/leaf-go"
+	"fansX/services/relation/internal/config"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"

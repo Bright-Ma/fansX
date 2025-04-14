@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bilibili/common/util"
 	"context"
+	"fansX/common/util"
 	"github.com/IBM/sarama"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -21,20 +21,19 @@ func main() {
 		panic(err.Error())
 	}
 
-	logger, err := util.InitLog("mq:MetaContent", slog.LevelDebug)
+	logger, err := util.InitLog("mq:PublicContent", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}
 	slog.SetDefault(logger)
 
-	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_meta_content_group", config)
+	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_public_content_group", config)
 	handler := Handler{
 		db: db,
 	}
 
-	err = consumer.Consume(context.Background(), []string{"test_meta_content"}, &handler)
+	err = consumer.Consume(context.Background(), []string{"test_public_content"}, &handler)
 	if err != nil {
 		panic(err.Error())
 	}
-
 }

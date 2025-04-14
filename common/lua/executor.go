@@ -1,11 +1,11 @@
 package lua
 
 import (
-	luaHash "bilibili/common/lua/script/hash"
-	luaString "bilibili/common/lua/script/string"
-	luaZset "bilibili/common/lua/script/zset"
 	"context"
 	"errors"
+	luaHash "fansX/common/lua/script/hash"
+	luaString "fansX/common/lua/script/string"
+	luaZset "fansX/common/lua/script/zset"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 )

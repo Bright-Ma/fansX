@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bilibili/common/lua"
-	"bilibili/internal/model/database"
-	"bilibili/internal/model/mq"
 	"context"
 	"encoding/json"
 	"errors"
+	"fansX/common/lua"
+	"fansX/internal/model/database"
+	"fansX/internal/model/mq"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"

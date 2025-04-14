@@ -1,8 +1,8 @@
 package group
 
 import (
-	"bilibili/pkg/hotkey-go/model"
 	"encoding/json"
+	"fansX/pkg/hotkey-go/model"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	"github.com/panjf2000/gnet"
 	"hash/fnv"

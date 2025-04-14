@@ -1,7 +1,7 @@
 package group
 
 import (
-	"bilibili/pkg/hotkey-go/model"
+	"fansX/pkg/hotkey-go/model"
 	"time"
 )
 

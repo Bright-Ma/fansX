@@ -1,21 +1,20 @@
 package logic
 
 import (
-	"bilibili/common/util"
-	"bilibili/services/content/public/proto/publicContentRpc"
-	interlua "bilibili/services/feed/internal/lua"
-	"bilibili/services/relation/proto/relationRpc"
 	"context"
 	"errors"
-	"github.com/redis/go-redis/v9"
+	"fansX/common/util"
+	heapx "fansX/pkg/heapx"
+	"fansX/services/content/public/proto/publicContentRpc"
+	interlua "fansX/services/feed/internal/lua"
+	"fansX/services/relation/proto/relationRpc"
 	"log/slog"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"bilibili/services/feed/internal/svc"
-	"bilibili/services/feed/proto/feedRpc"
+	"fansX/services/feed/internal/svc"
+	"fansX/services/feed/proto/feedRpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -55,7 +54,9 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 		return nil, err
 	}
 
-	list := make([][]int64, 0)
+	heap := heapx.NewHeap[[]int64](func(a, b []int64) bool {
+		return a[2] > b[2]
+	})
 
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
 	inter, err := executor.Execute(timeout, interlua.GetRevByScoreScript(), []string{inbox}, 0, in.TimeStamp).Result()
@@ -68,13 +69,13 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 
 	if errors.Is(err, redis.Nil) || len(inter.([]interface{})) == 0 {
 		logger.Info("search back")
-		err = searchBack(timeout, logger, in.Limit, resp.UserId, in.TimeStamp, list, contentClient)
+		err = searchBack(timeout, logger, in.Limit, resp.UserId, in.TimeStamp, heap, contentClient)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		logger.Info("find inbox,to get out box")
-		searchBig(timeout, logger, in.Limit, resp.UserId, list, cache, contentClient)
+		searchBig(timeout, logger, in.Limit, resp.UserId, heap, cache, contentClient)
 		interSlice := inter.([]interface{})
 
 		for i := 0; i < len(interSlice); i += 2 {
@@ -83,30 +84,25 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 			userId, _ := strconv.ParseInt(str[0], 10, 64)
 			contentId, _ := strconv.ParseInt(str[1], 10, 64)
 			score, _ := strconv.ParseInt(interSlice[i+1].(string), 10, 64)
-
-			list = append(list, []int64{userId, contentId, score})
+			heap.PushItem([]int64{userId, contentId, score})
 		}
 
 	}
 
-	sort.Slice(list, func(i, j int) bool {
-		return list[i][2] > list[j][2]
-	})
-
 	res := &feedRpc.PullResp{
-		UserId:    make([]int64, in.Limit),
-		ContentId: make([]int64, in.Limit),
-		TimeStamp: make([]int64, in.Limit),
+		UserId:    make([]int64, min(int(in.Limit), heap.Len())),
+		ContentId: make([]int64, min(int(in.Limit), heap.Len())),
+		TimeStamp: make([]int64, min(int(in.Limit), heap.Len())),
 	}
 
-	for i := 0; i < int(in.Limit) && i < len(list); i++ {
-		res.UserId[i] = list[i][0]
-		res.ContentId[i] = list[i][1]
-		res.TimeStamp[i] = list[i][2]
+	for i := 0; i < len(res.UserId); i++ {
+		item := heap.PopItem()
+		res.UserId[i] = item[0]
+		res.ContentId[i] = item[1]
+		res.TimeStamp[i] = item[2]
 	}
 
 	return res, nil
-
 }
 
 func searchBack(arguments ...interface{}) error {
@@ -115,7 +111,7 @@ func searchBack(arguments ...interface{}) error {
 	limit := arguments[2].(int64)
 	followingId := arguments[3].([]int64)
 	timeStamp := arguments[4].(int64)
-	list := arguments[5].([][]int64)
+	heap := arguments[5].(heapx.GenericHeap[[]int64])
 	client := arguments[6].(publicContentRpc.PublicContentServiceClient)
 
 	for _, id := range followingId {
@@ -129,7 +125,7 @@ func searchBack(arguments ...interface{}) error {
 			return err
 		}
 		for i, v := range resp.Id {
-			list = append(list, []int64{id, v, resp.TimeStamp[i]})
+			heap.PushItem([]int64{id, v, resp.TimeStamp[i]})
 		}
 	}
 	return nil

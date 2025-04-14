@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"bilibili/services/content/public/internal/logic"
-	"bilibili/services/content/public/internal/svc"
-	"bilibili/services/content/public/proto/publicContentRpc"
+	"fansX/services/content/public/internal/logic"
+	"fansX/services/content/public/internal/svc"
+	"fansX/services/content/public/proto/publicContentRpc"
 )
 
 type PublicContentServiceServer struct {

@@ -1,9 +1,9 @@
 package hotkey
 
 import (
-	"bilibili/pkg/hotkey-go/model"
 	"encoding/binary"
 	"encoding/json"
+	"fansX/pkg/hotkey-go/model"
 	"io"
 	"log/slog"
 	"time"

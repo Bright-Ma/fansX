@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"bilibili/services/feed/internal/logic"
-	"bilibili/services/feed/internal/svc"
-	"bilibili/services/feed/proto/feedRpc"
+	"fansX/services/feed/internal/logic"
+	"fansX/services/feed/internal/svc"
+	"fansX/services/feed/proto/feedRpc"
 )
 
 type FeedServiceServer struct {

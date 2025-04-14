@@ -1,9 +1,9 @@
 package server
 
 import (
-	"bilibili/pkg/hotkey-go/model"
-	"bilibili/pkg/hotkey-go/worker/group"
 	"encoding/json"
+	"fansX/pkg/hotkey-go/model"
+	"fansX/pkg/hotkey-go/worker/group"
 	"fmt"
 	"github.com/panjf2000/gnet"
 	"github.com/panjf2000/gnet/pkg/pool/goroutine"

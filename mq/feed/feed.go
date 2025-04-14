@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bilibili/common/lua"
-	luaHash "bilibili/common/lua/script/hash"
 	"context"
+	"fansX/common/lua"
+	luaHash "fansX/common/lua/script/hash"
 	"fmt"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"

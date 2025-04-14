@@ -1,11 +1,11 @@
 package svc
 
 import (
-	"bilibili/common/lua"
-	"bilibili/common/util"
-	"bilibili/pkg/hotkey-go/hotkey"
-	"bilibili/services/content/public/internal/config"
 	"context"
+	"fansX/common/lua"
+	"fansX/common/util"
+	"fansX/pkg/hotkey-go/hotkey"
+	"fansX/services/content/public/internal/config"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"

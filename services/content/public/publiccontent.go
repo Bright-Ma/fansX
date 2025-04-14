@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"bilibili/services/content/public/internal/config"
-	"bilibili/services/content/public/internal/server"
-	"bilibili/services/content/public/internal/svc"
-	"bilibili/services/content/public/proto/publicContentRpc"
+	"fansX/services/content/public/internal/config"
+	"fansX/services/content/public/internal/server"
+	"fansX/services/content/public/internal/svc"
+	"fansX/services/content/public/proto/publicContentRpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"

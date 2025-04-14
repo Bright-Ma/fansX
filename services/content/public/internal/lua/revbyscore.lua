@@ -8,3 +8,5 @@ if exists==0
 end
 
 local res=redis.call("ZRANGEBYSCORE",key,tonumber(min),tonumber(max),"WITHSCORES")
+
+return res

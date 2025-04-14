@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bilibili/pkg/hotkey-go/hotkey"
+	"fansX/pkg/hotkey-go/hotkey"
 	etcd "go.etcd.io/etcd/client/v3"
 	"math/rand"
 	"strconv"

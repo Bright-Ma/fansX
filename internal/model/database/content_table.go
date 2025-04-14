@@ -8,8 +8,8 @@ type VisibleContentInfo struct {
 	Id      int64 `gorm:"PRIMARY_KEY"`
 	Version int64 `gorm:"not null;default:1"`
 
-	Userid       int64  `gorm:"not null;index:user,priority:10"`
-	Status       int    `gorm:"not null;index:user,priority:20"`
+	Userid       int64  `gorm:"not null;index"`
+	Status       int    `gorm:"not null"`
 	Title        string `gorm:"size:255"`
 	PhotoUriList string `gorm:"size:8192"`
 
@@ -18,7 +18,7 @@ type VisibleContentInfo struct {
 	VideoUriList string `gorm:"size:8192"`
 
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
-	CreatedAt int64     `gorm:"autoCreateTime:milli;index:user,priority:30"`
+	CreatedAt int64     `gorm:"autoCreateTime:milli"`
 }
 
 type InvisibleContentInfo struct {

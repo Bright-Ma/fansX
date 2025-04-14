@@ -7,7 +7,7 @@ package metacontentservice
 import (
 	"context"
 
-	"bilibili/services/content/meta/proto/metaContentRpc"
+	"fansX/services/content/meta/proto/metaContentRpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"

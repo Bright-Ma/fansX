@@ -1,17 +1,17 @@
 package logic
 
 import (
-	"bilibili/common/util"
-	"bilibili/internal/model/database"
 	"context"
 	"encoding/binary"
 	"errors"
+	"fansX/common/util"
+	"fansX/internal/model/database"
 	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"
 
-	"bilibili/services/relation/internal/svc"
-	"bilibili/services/relation/proto/relationRpc"
+	"fansX/services/relation/internal/svc"
+	"fansX/services/relation/proto/relationRpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

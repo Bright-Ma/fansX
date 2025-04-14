@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bilibili/common/lua"
-	"bilibili/mq/relation/follower/lua"
 	"context"
+	"fansX/common/lua"
+	"fansX/mq/relation/follower/lua"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"

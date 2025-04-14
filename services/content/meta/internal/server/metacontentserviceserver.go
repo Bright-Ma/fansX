@@ -7,9 +7,9 @@ package server
 import (
 	"context"
 
-	"bilibili/services/content/meta/internal/logic"
-	"bilibili/services/content/meta/internal/svc"
-	"bilibili/services/content/meta/proto/metaContentRpc"
+	"fansX/services/content/meta/internal/logic"
+	"fansX/services/content/meta/internal/svc"
+	"fansX/services/content/meta/proto/metaContentRpc"
 )
 
 type MetaContentServiceServer struct {

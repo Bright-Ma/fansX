@@ -1,11 +1,10 @@
 package main
 
 import (
-	luaString "bilibili/common/lua/script/string"
-	"bilibili/internal/model/database"
-	"bilibili/internal/model/mq"
-	"bilibili/mq/relation/follower/lua"
 	"context"
+	luaString "fansX/common/lua/script/string"
+	"fansX/internal/model/database"
+	"fansX/internal/model/mq"
 	"gorm.io/gorm"
 	"strconv"
 	"time"

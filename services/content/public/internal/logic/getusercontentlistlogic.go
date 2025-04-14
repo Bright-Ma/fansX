@@ -1,23 +1,23 @@
 package logic
 
 import (
-	"bilibili/common/lua"
-	luaZset "bilibili/common/lua/script/zset"
-	"bilibili/common/util"
-	"bilibili/internal/model/database"
-	"bilibili/pkg/hotkey-go/hotkey"
-	interlua "bilibili/services/content/public/internal/lua"
 	"context"
 	"encoding/json"
 	"errors"
+	"fansX/common/lua"
+	luaZset "fansX/common/lua/script/zset"
+	"fansX/common/util"
+	"fansX/internal/model/database"
+	"fansX/pkg/hotkey-go/hotkey"
+	interlua "fansX/services/content/public/internal/lua"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
 	"time"
 
-	"bilibili/services/content/public/internal/svc"
-	"bilibili/services/content/public/proto/publicContentRpc"
+	"fansX/services/content/public/internal/svc"
+	"fansX/services/content/public/proto/publicContentRpc"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )

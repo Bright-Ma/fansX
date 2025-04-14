@@ -1,10 +1,10 @@
 package leaf_go
 
 import (
-	segment2 "bilibili/pkg/leaf-go/segment"
-	snowflake2 "bilibili/pkg/leaf-go/snowflake"
 	"context"
 	"errors"
+	segment2 "fansX/pkg/leaf-go/segment"
+	snowflake2 "fansX/pkg/leaf-go/snowflake"
 )
 
 type Config struct {

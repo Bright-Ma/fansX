@@ -1,13 +1,12 @@
 package svc
 
 import (
-	"bilibili/common/lua"
-	"bilibili/common/util"
-	bigcache "bilibili/internal/cache"
-	"bilibili/services/content/public/proto/publicContentRpc"
-	"bilibili/services/feed/internal/config"
-	"bilibili/services/relation/proto/relationRpc"
 	"context"
+	"fansX/common/lua"
+	"fansX/common/util"
+	"fansX/services/content/public/proto/publicContentRpc"
+	"fansX/services/feed/internal/config"
+	"fansX/services/relation/proto/relationRpc"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"

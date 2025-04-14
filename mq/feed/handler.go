@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bilibili/common/lua"
-	luaHash "bilibili/common/lua/script/hash"
-	"bilibili/internal/model/mq"
 	"context"
 	"encoding/json"
+	"fansX/common/lua"
+	luaHash "fansX/common/lua/script/hash"
+	"fansX/internal/model/mq"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"log/slog"

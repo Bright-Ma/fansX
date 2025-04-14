@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"bilibili/services/relation/internal/config"
-	"bilibili/services/relation/internal/server"
-	"bilibili/services/relation/internal/svc"
-	"bilibili/services/relation/proto/relationRpc"
+	"fansX/services/relation/internal/config"
+	"fansX/services/relation/internal/server"
+	"fansX/services/relation/internal/svc"
+	"fansX/services/relation/proto/relationRpc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"

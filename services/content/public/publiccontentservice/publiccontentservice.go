@@ -7,7 +7,7 @@ package publiccontentservice
 import (
 	"context"
 
-	"bilibili/services/content/public/proto/publicContentRpc"
+	"fansX/services/content/public/proto/publicContentRpc"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
