@@ -1,4 +1,4 @@
-package luaFollowing
+package interlua
 
 type add struct {
 	function string

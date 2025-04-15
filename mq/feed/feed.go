@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"fansX/common/lua"
-	luaHash "fansX/common/lua/script/hash"
+	interlua "fansX/mq/feed/lua"
 	leaf "fansX/pkg/leaf-go"
-	"fmt"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 )
@@ -25,9 +24,13 @@ func main() {
 	}
 
 	executor := lua.NewExecutor(client)
-	index, err := executor.Load(context.Background(), []lua.Script{luaHash.GetCreate()})
+	err := executor.LoadAll()
 	if err != nil {
-		panic(fmt.Sprintln(err.Error(), " index:", index))
+		panic(err.Error())
+	}
+	_, err = executor.Load(context.Background(), []lua.Script{interlua.GetAdd()})
+	if err != nil {
+		panic(err.Error())
 	}
 
 	creator, err := leaf.Init(&leaf.Config{

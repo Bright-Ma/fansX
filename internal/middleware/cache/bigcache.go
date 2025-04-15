@@ -31,7 +31,7 @@ func Init(client *redis.Client) (*Cache, error) {
 
 	go func() {
 		for {
-			time.Sleep(time.Minute * 5)
+			time.Sleep(time.Minute)
 			for {
 				timeout, cancel := context.WithTimeout(context.Background(), time.Second*20)
 				err := c.check(timeout)
@@ -115,7 +115,7 @@ func (cache *Cache) check(ctx context.Context) error {
 }
 
 func (cache *Cache) IsBig(id int64) bool {
-	cache.rmu.RLocker()
+	cache.rmu.RLock()
 	defer cache.rmu.RUnlock()
 	_, ok := cache.big[id]
 	return ok

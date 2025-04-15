@@ -3,108 +3,70 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fansX/common/lua"
+	luaString "fansX/common/lua/script/string"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
+	interlua "fansX/mq/relation/follower/lua"
+	"fansX/pkg/hotkey-go/hotkey"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"log/slog"
+	"strconv"
 	"time"
 )
 
 type Handler struct {
-	db       *gorm.DB
 	client   *redis.Client
+	core     *hotkey.Core
 	executor *lua.Executor
 }
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
 func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for message := range claim.Messages() {
-		msg := &mq.FollowingCanalJson{}
-		err := json.Unmarshal(message.Value, msg)
-
+	for msg := range claim.Messages() {
+		message := &mq.FollowerCanalJson{}
+		err := json.Unmarshal(msg.Value, message)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("unmarshal json:" + err.Error())
 			continue
 		}
-		if len(msg.Data) == 0 {
-			continue
-		}
-
-		data := &database.Follower{}
-		data = Trans(&msg.Data[0])
-
-		for i := 0; i < 3; i++ {
-			err = h.process(data)
-
-			if err != nil {
-				slog.Error(err.Error(), "times", i+1)
-				continue
-			} else {
-				session.MarkMessage(message, "")
-				h.UpdateRedis(data)
-				break
-			}
-		}
-
+		data := Trans(&message.Data[0])
+		h.UpdateRedis(data)
+		session.MarkMessage(msg, "")
 	}
 
 	return nil
 }
 
-func (h *Handler) process(data *database.Follower) error {
-	var err error
+func Trans(msg *mq.Follower) *database.Follower {
+	t, _ := strconv.Atoi(msg.Type)
+	id, _ := strconv.ParseInt(msg.Id, 10, 64)
+	u, _ := strconv.ParseInt(msg.UpdatedAt, 10, 64)
+	followerId, _ := strconv.ParseInt(msg.FollowerId, 10, 64)
+	followingId, _ := strconv.ParseInt(msg.FollowingId, 10, 64)
 
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	return &database.Follower{
+		Id:          id,
+		FollowerId:  followerId,
+		Type:        t,
+		FollowingId: followingId,
+		UpdatedAt:   u,
+	}
+}
+
+func (h *Handler) UpdateRedis(data *database.Follower) {
+	e := h.executor
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	tx := h.db.WithContext(timeout).Begin()
-	record := &database.Follower{}
-
-	err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).Take(record, data.Id).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		tx.Commit()
-		return err
+	key := "Follower:" + strconv.FormatInt(data.FollowingId, 10)
+	if data.Type == database.Followed {
+		e.Execute(timeout, interlua.GetAdd(), []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
+		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
+	} else {
+		h.client.ZRem(timeout, key, strconv.FormatInt(data.FollowerId, 10))
+		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
 	}
-
-	if err != nil {
-		err = tx.Create(data).Error
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		err = h.UpdateNums(tx, data)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		tx.Commit()
-		return nil
-	}
-
-	if record.Type != data.Type && record.UpdatedAt < data.UpdatedAt {
-		err = tx.Take(record).Update("type", data.Type).Update("updated_at", data.UpdatedAt).Error
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		err = h.UpdateNums(tx, data)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		tx.Commit()
-		return nil
-	}
-
-	return nil
 }

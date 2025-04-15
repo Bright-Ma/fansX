@@ -153,14 +153,17 @@ func (h *Handler) handleDel(del []int64) (failed []int64) {
 		}
 
 		for _, v := range listResp.UserId {
-			err = h.client.Get(timeout, "user:"+strconv.FormatInt(v, 10)).Err()
+			err = h.client.Get(timeout, "inbox:"+strconv.FormatInt(v, 10)).Err()
 			if err != nil && !errors.Is(err, redis.Nil) {
-				slog.Error("get user online info:" + err.Error())
+				slog.Error("get user inbox:" + err.Error())
 				continue
 			} else if errors.Is(err, redis.Nil) {
 				continue
 			}
-			h.executor.Execute(timeout, interlua.GetAdd(), []string{"inbox:" + strconv.FormatInt(v, 10), "100"}, data)
+			err = h.executor.Execute(timeout, interlua.GetAdd(), []string{"inbox:" + strconv.FormatInt(v, 10), "100"}, data).Err()
+			if err != nil {
+				slog.Error("add content info to inbox:" + err.Error())
+			}
 		}
 
 		cancel()
@@ -202,7 +205,7 @@ func (h *Handler) handleAdd(add []int64) (failed []int64) {
 		}
 
 		for _, v := range listResp.UserId {
-			err = h.client.Get(timeout, "user:"+strconv.FormatInt(v, 10)).Err()
+			err = h.client.Get(timeout, "inbox:"+strconv.FormatInt(v, 10)).Err()
 			if err != nil && !errors.Is(err, redis.Nil) {
 				slog.Error("get user online info" + err.Error())
 				continue
@@ -260,6 +263,6 @@ func (h *Handler) updateRedis(set map[string][]interface{}, key []string) error 
 		slog.Error("execute hash create:" + err.Error())
 		return err
 	}
-
+	// should check redis several minutes later
 	return nil
 }

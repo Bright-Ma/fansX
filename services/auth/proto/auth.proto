@@ -3,10 +3,10 @@ package AuthRpc;
 option go_package = "./AuthRpc";
 
 service AuthService{
-  rpc Authentication(AuthenticationReq) returns (AuthenticationResp){}//鉴权
+  rpc Authentication(AuthenticationReq) returns (AuthenticationResp){}//凭证验证
   rpc RefreshSession(RefreshSessionReq) returns(RefreshSessionResp){}//续约session
   rpc DeleteSession(DeleteSessionReq) returns (DeleteSessionResp){}//删除session
-  rpc CreateVoucher(CreateVoucherReq) returns (CreateVoucherResp){} //创建session和token
+  rpc CreateVoucher(CreateVoucherReq) returns (CreateVoucherResp){} //凭证创建
 }
 
 message AuthenticationReq{
