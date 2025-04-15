@@ -9,8 +9,14 @@ import (
 )
 
 func main() {
+	key := make([]string, 500000)
+	for i := 0; i < len(key); i++ {
+		key[i] = "key" + strconv.FormatInt(int64(i), 10)
+	}
+
 	for i := 0; i < 4; i++ {
 		config := hotkey.Config{
+			Model:      hotkey.ModelCache,
 			GroupName:  "test" + strconv.Itoa(i),
 			CacheSize:  1024 * 1024 * 1024,
 			HotKeySize: 1024 * 1024 * 128,
@@ -25,10 +31,6 @@ func main() {
 		if err != nil {
 			panic(err.Error())
 		}
-		key := make([]string, 100000)
-		for i := 0; i < 100000; i++ {
-			key[i] = "key" + strconv.FormatInt(int64(i), 10)
-		}
 
 		go func() {
 			for i := 0; i < 1; i++ {
@@ -41,6 +43,5 @@ func main() {
 		}()
 
 	}
-
 	select {}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fansX/common/lua"
 	luaHash "fansX/common/lua/script/hash"
+	leaf "fansX/pkg/leaf-go"
 	"fmt"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
@@ -23,22 +24,27 @@ func main() {
 		panic(err.Error())
 	}
 
-	cache, err := Init(client)
-	if err != nil {
-		panic(err.Error())
-	}
-
 	executor := lua.NewExecutor(client)
 	index, err := executor.Load(context.Background(), []lua.Script{luaHash.GetCreate()})
 	if err != nil {
 		panic(fmt.Sprintln(err.Error(), " index:", index))
 	}
 
+	creator, err := leaf.Init(&leaf.Config{
+		Model: leaf.Segment,
+		SegmentConfig: &leaf.SegmentConfig{
+			Name:     "FeedKafkaConsumer",
+			UserName: "root",
+			Password: "",
+			Address:  "linux.1jian10.cn:4000",
+		},
+	})
+
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_feed_group", config)
 	handler := Handler{
 		client:   client,
-		cache:    cache,
 		executor: executor,
+		creator:  creator,
 	}
 
 	err = consumer.Consume(context.Background(), []string{"test_feed"}, &handler)

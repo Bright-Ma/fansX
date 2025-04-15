@@ -124,7 +124,7 @@ func (c *Core) watch() error {
 }
 
 func (c *Core) sendKey() {
-	ticker := time.NewTicker(time.Millisecond * 150)
+	ticker := time.NewTicker(time.Millisecond * 200)
 	list := make(map[string]int)
 
 	for {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fansX/common/util"
-	heapx "fansX/pkg/heapx"
 	"fansX/services/content/public/proto/publicContentRpc"
 	interlua "fansX/services/feed/internal/lua"
 	"fansX/services/relation/proto/relationRpc"
+	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -54,9 +54,7 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 		return nil, err
 	}
 
-	heap := heapx.NewHeap[[]int64](func(a, b []int64) bool {
-		return a[2] > b[2]
-	})
+	set := make(map[[3]int64]bool)
 
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
 	inter, err := executor.Execute(timeout, interlua.GetRevByScoreScript(), []string{inbox}, 0, in.TimeStamp).Result()
@@ -69,13 +67,13 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 
 	if errors.Is(err, redis.Nil) || len(inter.([]interface{})) == 0 {
 		logger.Info("search back")
-		err = searchBack(timeout, logger, in.Limit, resp.UserId, in.TimeStamp, heap, contentClient)
+		err = searchBack(timeout, logger, in.Limit, resp.UserId, in.TimeStamp, set, contentClient)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		logger.Info("find inbox,to get out box")
-		searchBig(timeout, logger, in.Limit, resp.UserId, heap, cache, contentClient)
+		searchBig(timeout, logger, in.Limit, resp.UserId, set, cache, contentClient)
 		interSlice := inter.([]interface{})
 
 		for i := 0; i < len(interSlice); i += 2 {
@@ -84,19 +82,21 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 			userId, _ := strconv.ParseInt(str[0], 10, 64)
 			contentId, _ := strconv.ParseInt(str[1], 10, 64)
 			score, _ := strconv.ParseInt(interSlice[i+1].(string), 10, 64)
-			heap.PushItem([]int64{userId, contentId, score})
+			set[[3]int64{userId, contentId, score}] = true
 		}
 
 	}
 
+	top := GetTopK(set, int(in.Limit))
+
 	res := &feedRpc.PullResp{
-		UserId:    make([]int64, min(int(in.Limit), heap.Len())),
-		ContentId: make([]int64, min(int(in.Limit), heap.Len())),
-		TimeStamp: make([]int64, min(int(in.Limit), heap.Len())),
+		UserId:    make([]int64, min(int(in.Limit), len(top))),
+		ContentId: make([]int64, min(int(in.Limit), len(top))),
+		TimeStamp: make([]int64, min(int(in.Limit), len(top))),
 	}
 
 	for i := 0; i < len(res.UserId); i++ {
-		item := heap.PopItem()
+		item := top[i]
 		res.UserId[i] = item[0]
 		res.ContentId[i] = item[1]
 		res.TimeStamp[i] = item[2]
@@ -111,7 +111,7 @@ func searchBack(arguments ...interface{}) error {
 	limit := arguments[2].(int64)
 	followingId := arguments[3].([]int64)
 	timeStamp := arguments[4].(int64)
-	heap := arguments[5].(heapx.GenericHeap[[]int64])
+	set := arguments[5].(map[[3]int64]bool)
 	client := arguments[6].(publicContentRpc.PublicContentServiceClient)
 
 	for _, id := range followingId {
@@ -125,7 +125,7 @@ func searchBack(arguments ...interface{}) error {
 			return err
 		}
 		for i, v := range resp.Id {
-			heap.PushItem([]int64{id, v, resp.TimeStamp[i]})
+			set[[3]int64{id, v, resp.TimeStamp[i]}] = true
 		}
 	}
 	return nil

@@ -19,6 +19,7 @@ type Handler struct {
 }
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
+	slog.Info("handler set up ")
 	return nil
 }
 
@@ -35,6 +36,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 			continue
 		}
 		if message.IsDdl {
+			session.MarkMessage(msg, "")
 			continue
 		}
 		slog.Info("consume kafka message", "dml_type", message.Type)

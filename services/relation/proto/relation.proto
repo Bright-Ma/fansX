@@ -9,6 +9,7 @@ service RelationService {
   rpc listFollowing(listFollowingReq)returns(listFollowingResp);
   rpc isFollowing(isFollowingReq)returns(isFollowingResp);
   rpc listFollower(listFollowerReq)returns(listFollowerResp);
+  rpc listAllFollower(listAllFollowerReq)returns(listFollowerResp);
   rpc getFollowingNums(getFollowingNumsReq)returns(getFollowingNumsResp);
   rpc getFollowerNums(getFollowerNumsReq)returns(getFollowerNumsResp);
 }
@@ -47,6 +48,10 @@ message listFollowerReq{
   int64 userId = 1;
   int32 limit = 2;
   int32 offset = 3;
+}
+
+message listAllFollowerReq{
+  int64 userId=1;
 }
 
 message listFollowerResp{

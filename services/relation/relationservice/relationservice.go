@@ -23,6 +23,7 @@ type (
 	GetFollowingNumsResp = relationRpc.GetFollowingNumsResp
 	IsFollowingReq       = relationRpc.IsFollowingReq
 	IsFollowingResp      = relationRpc.IsFollowingResp
+	ListAllFollowerReq   = relationRpc.ListAllFollowerReq
 	ListFollowerReq      = relationRpc.ListFollowerReq
 	ListFollowerResp     = relationRpc.ListFollowerResp
 	ListFollowingReq     = relationRpc.ListFollowingReq
@@ -34,6 +35,7 @@ type (
 		ListFollowing(ctx context.Context, in *ListFollowingReq, opts ...grpc.CallOption) (*ListFollowingResp, error)
 		IsFollowing(ctx context.Context, in *IsFollowingReq, opts ...grpc.CallOption) (*IsFollowingResp, error)
 		ListFollower(ctx context.Context, in *ListFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error)
+		ListAllFollower(ctx context.Context, in *ListAllFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error)
 		GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error)
 		GetFollowerNums(ctx context.Context, in *GetFollowerNumsReq, opts ...grpc.CallOption) (*GetFollowerNumsResp, error)
 	}
@@ -72,6 +74,11 @@ func (m *defaultRelationService) IsFollowing(ctx context.Context, in *IsFollowin
 func (m *defaultRelationService) ListFollower(ctx context.Context, in *ListFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error) {
 	client := relationRpc.NewRelationServiceClient(m.cli.Conn())
 	return client.ListFollower(ctx, in, opts...)
+}
+
+func (m *defaultRelationService) ListAllFollower(ctx context.Context, in *ListAllFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error) {
+	client := relationRpc.NewRelationServiceClient(m.cli.Conn())
+	return client.ListAllFollower(ctx, in, opts...)
 }
 
 func (m *defaultRelationService) GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error) {

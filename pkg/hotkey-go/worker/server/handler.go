@@ -48,6 +48,8 @@ func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Act
 func (h *Handler) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		slog.Error(err.Error())
+	} else {
+		slog.Info("connect closed")
 	}
 
 	return gnet.None

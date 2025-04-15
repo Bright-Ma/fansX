@@ -24,6 +24,7 @@ const (
 	RelationService_ListFollowing_FullMethodName    = "/relationRpc.RelationService/listFollowing"
 	RelationService_IsFollowing_FullMethodName      = "/relationRpc.RelationService/isFollowing"
 	RelationService_ListFollower_FullMethodName     = "/relationRpc.RelationService/listFollower"
+	RelationService_ListAllFollower_FullMethodName  = "/relationRpc.RelationService/listAllFollower"
 	RelationService_GetFollowingNums_FullMethodName = "/relationRpc.RelationService/getFollowingNums"
 	RelationService_GetFollowerNums_FullMethodName  = "/relationRpc.RelationService/getFollowerNums"
 )
@@ -37,6 +38,7 @@ type RelationServiceClient interface {
 	ListFollowing(ctx context.Context, in *ListFollowingReq, opts ...grpc.CallOption) (*ListFollowingResp, error)
 	IsFollowing(ctx context.Context, in *IsFollowingReq, opts ...grpc.CallOption) (*IsFollowingResp, error)
 	ListFollower(ctx context.Context, in *ListFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error)
+	ListAllFollower(ctx context.Context, in *ListAllFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error)
 	GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error)
 	GetFollowerNums(ctx context.Context, in *GetFollowerNumsReq, opts ...grpc.CallOption) (*GetFollowerNumsResp, error)
 }
@@ -99,6 +101,16 @@ func (c *relationServiceClient) ListFollower(ctx context.Context, in *ListFollow
 	return out, nil
 }
 
+func (c *relationServiceClient) ListAllFollower(ctx context.Context, in *ListAllFollowerReq, opts ...grpc.CallOption) (*ListFollowerResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFollowerResp)
+	err := c.cc.Invoke(ctx, RelationService_ListAllFollower_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *relationServiceClient) GetFollowingNums(ctx context.Context, in *GetFollowingNumsReq, opts ...grpc.CallOption) (*GetFollowingNumsResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetFollowingNumsResp)
@@ -128,6 +140,7 @@ type RelationServiceServer interface {
 	ListFollowing(context.Context, *ListFollowingReq) (*ListFollowingResp, error)
 	IsFollowing(context.Context, *IsFollowingReq) (*IsFollowingResp, error)
 	ListFollower(context.Context, *ListFollowerReq) (*ListFollowerResp, error)
+	ListAllFollower(context.Context, *ListAllFollowerReq) (*ListFollowerResp, error)
 	GetFollowingNums(context.Context, *GetFollowingNumsReq) (*GetFollowingNumsResp, error)
 	GetFollowerNums(context.Context, *GetFollowerNumsReq) (*GetFollowerNumsResp, error)
 	mustEmbedUnimplementedRelationServiceServer()
@@ -154,6 +167,9 @@ func (UnimplementedRelationServiceServer) IsFollowing(context.Context, *IsFollow
 }
 func (UnimplementedRelationServiceServer) ListFollower(context.Context, *ListFollowerReq) (*ListFollowerResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListFollower not implemented")
+}
+func (UnimplementedRelationServiceServer) ListAllFollower(context.Context, *ListAllFollowerReq) (*ListFollowerResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAllFollower not implemented")
 }
 func (UnimplementedRelationServiceServer) GetFollowingNums(context.Context, *GetFollowingNumsReq) (*GetFollowingNumsResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFollowingNums not implemented")
@@ -272,6 +288,24 @@ func _RelationService_ListFollower_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_ListAllFollower_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAllFollowerReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).ListAllFollower(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_ListAllFollower_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).ListAllFollower(ctx, req.(*ListAllFollowerReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RelationService_GetFollowingNums_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetFollowingNumsReq)
 	if err := dec(in); err != nil {
@@ -334,6 +368,10 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listFollower",
 			Handler:    _RelationService_ListFollower_Handler,
+		},
+		{
+			MethodName: "listAllFollower",
+			Handler:    _RelationService_ListAllFollower_Handler,
 		},
 		{
 			MethodName: "getFollowingNums",

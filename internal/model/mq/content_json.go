@@ -5,6 +5,10 @@ type MetaContentJson struct {
 	Data []MetaContent `json:"data"`
 }
 
+type PublicContentJson struct {
+	CanalJson
+}
+
 type MetaContent struct {
 	Id              string `json:"id"`
 	Version         string `json:"version"`

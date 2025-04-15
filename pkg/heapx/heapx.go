@@ -4,7 +4,6 @@ import (
 	"container/heap"
 )
 
-// LessFunc a<b 小根堆
 type LessFunc[T any] func(a, b T) bool
 
 type GenericHeap[T any] struct {
@@ -12,6 +11,7 @@ type GenericHeap[T any] struct {
 	less LessFunc[T]
 }
 
+// NewHeap a<b 小根堆
 func NewHeap[T any](less LessFunc[T]) *GenericHeap[T] {
 	h := &GenericHeap[T]{
 		data: make([]T, 0),

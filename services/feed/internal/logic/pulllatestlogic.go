@@ -6,6 +6,7 @@ import (
 	"fansX/common/lua"
 	luaZset "fansX/common/lua/script/zset"
 	"fansX/common/util"
+	bigcache "fansX/internal/middleware/cache"
 	heapx "fansX/pkg/heapx"
 	"fansX/services/content/public/proto/publicContentRpc"
 	interlua "fansX/services/feed/internal/lua"
@@ -56,10 +57,8 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 		logger.Error("list following:" + err.Error())
 		return nil, err
 	}
-	heap := heapx.NewHeap[[]int64](func(a, b []int64) bool {
-		return a[2] > b[2]
-	})
 
+	set := make(map[[3]int64]bool)
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
 
 	inter, err := executor.Execute(timeout, interlua.GetRevRangeScript(), []string{inbox}, in.Limit).Result()
@@ -71,7 +70,7 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 	} else if errors.Is(err, redis.Nil) {
 
 		logger.Info("not find inbox")
-		err = searchAll(timeout, logger, in.UserId, resp.UserId, heap, cache, executor, contentClient)
+		err = searchAll(timeout, logger, in.UserId, resp.UserId, set, cache, executor, contentClient)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +78,7 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 	} else {
 
 		logger.Info("find inbox,to get out box")
-		searchBig(timeout, logger, in.Limit, resp.UserId, heap, cache, contentClient)
+		searchBig(timeout, logger, in.Limit, resp.UserId, set, cache, contentClient)
 		interSlice := inter.([]interface{})
 
 		for i := 0; i < len(interSlice); i += 2 {
@@ -89,19 +88,20 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 			contentId, _ := strconv.ParseInt(str[1], 10, 64)
 			score, _ := strconv.ParseInt(interSlice[i+1].(string), 10, 64)
 
-			heap.PushItem([]int64{userId, contentId, score})
+			set[[3]int64{userId, contentId, score}] = true
 		}
-
 	}
 
+	top := GetTopK(set, int(in.Limit))
+
 	res := &feedRpc.PullResp{
-		UserId:    make([]int64, min(int(in.Limit), heap.Len())),
-		ContentId: make([]int64, min(int(in.Limit), heap.Len())),
-		TimeStamp: make([]int64, min(int(in.Limit), heap.Len())),
+		UserId:    make([]int64, min(int(in.Limit), len(top))),
+		ContentId: make([]int64, min(int(in.Limit), len(top))),
+		TimeStamp: make([]int64, min(int(in.Limit), len(top))),
 	}
 
 	for i := 0; i < len(res.UserId); i++ {
-		item := heap.PopItem()
+		item := top[i]
 		res.UserId[i] = item[0]
 		res.ContentId[i] = item[1]
 		res.TimeStamp[i] = item[2]
@@ -116,7 +116,7 @@ func searchBig(arguments ...interface{}) {
 	logger := arguments[1].(*slog.Logger)
 	limit := arguments[2].(int64)
 	followingId := arguments[3].([]int64)
-	heap := arguments[4].(heapx.GenericHeap[[]int64])
+	set := arguments[4].(map[[3]int64]bool)
 	cache := arguments[5].(*bigcache.Cache)
 	client := arguments[6].(publicContentRpc.PublicContentServiceClient)
 
@@ -134,7 +134,7 @@ func searchBig(arguments ...interface{}) {
 				logger.Error("get user content list:"+err.Error(), "userId", id)
 			} else {
 				for i, v := range resp.Id {
-					heap.PushItem([]int64{id, v, resp.TimeStamp[i]})
+					set[[3]int64{id, v, resp.TimeStamp[i]}] = true
 				}
 			}
 
@@ -149,7 +149,7 @@ func searchAll(arguments ...interface{}) error {
 	logger := arguments[1].(*slog.Logger)
 	userId := arguments[2].(int64)
 	followingId := arguments[3].([]int64)
-	heap := arguments[4].(heapx.GenericHeap[[]int64])
+	set := arguments[4].(map[[3]int64]bool)
 	cache := arguments[5].(*bigcache.Cache)
 	executor := arguments[6].(*lua.Executor)
 	client := arguments[7].(publicContentRpc.PublicContentServiceClient)
@@ -171,7 +171,7 @@ func searchAll(arguments ...interface{}) error {
 			return err
 		} else {
 			for i, v := range resp.Id {
-				heap.PushItem([]int64{id, v, resp.TimeStamp[i]})
+				set[[3]int64{id, v, resp.TimeStamp[i]}] = true
 				if !cache.IsBig(id) {
 					build.PushItem([]int64{id, v, resp.TimeStamp[i]})
 				}
@@ -179,8 +179,7 @@ func searchAll(arguments ...interface{}) error {
 		}
 
 	}
-
-	argv := make([]string, min(1000, build.Len()))
+	argv := make([]string, min(200, build.Len()))
 	for i := 0; i < len(argv); i += 2 {
 		item := build.PopItem()
 		argv[i] = strconv.FormatInt(item[2], 10)
@@ -193,4 +192,22 @@ func searchAll(arguments ...interface{}) error {
 	}
 
 	return nil
+}
+
+func GetTopK(set map[[3]int64]bool, k int) [][3]int64 {
+	heap := heapx.NewHeap[[3]int64](func(a, b [3]int64) bool {
+		return a[2] < b[2]
+	})
+	for key := range set {
+		heap.PushItem(key)
+		if heap.Len() > k {
+			heap.Pop()
+		}
+	}
+	res := make([][3]int64, min(k, heap.Len()))
+	for heap.Len() != 0 {
+		res = append(res, heap.PopItem())
+	}
+
+	return res
 }

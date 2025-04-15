@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fansX/common/util"
+	"fmt"
 	"github.com/IBM/sarama"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -27,12 +28,12 @@ func main() {
 	}
 	slog.SetDefault(logger)
 
-	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_public_content_group", config)
+	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_meta_content_group", config)
 	handler := Handler{
 		db: db,
 	}
-
-	err = consumer.Consume(context.Background(), []string{"test_public_content"}, &handler)
+	fmt.Println("in")
+	err = consumer.Consume(context.Background(), []string{"test_meta_content"}, &handler)
 	if err != nil {
 		panic(err.Error())
 	}
