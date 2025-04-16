@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fansX/common/lua"
+	lua "fansX/internal/middleware/lua"
 	interlua "fansX/mq/feed/lua"
 	leaf "fansX/pkg/leaf-go"
 	"github.com/IBM/sarama"

@@ -2,8 +2,8 @@ package logic
 
 import (
 	"context"
-	"fansX/common/util"
 	"fansX/internal/model/database"
+	"fansX/internal/util"
 	"time"
 
 	"fansX/services/relation/internal/svc"

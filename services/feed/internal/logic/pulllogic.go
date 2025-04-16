@@ -3,7 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
-	"fansX/common/util"
+	"fansX/internal/util"
 	"fansX/services/content/public/proto/publicContentRpc"
 	interlua "fansX/services/feed/internal/lua"
 	"fansX/services/relation/proto/relationRpc"

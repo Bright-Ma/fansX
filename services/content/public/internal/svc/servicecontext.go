@@ -2,8 +2,8 @@ package svc
 
 import (
 	"context"
-	"fansX/common/lua"
-	"fansX/common/util"
+	"fansX/internal/middleware/lua"
+	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
 	"fansX/services/content/public/internal/config"
 	"github.com/redis/go-redis/v9"

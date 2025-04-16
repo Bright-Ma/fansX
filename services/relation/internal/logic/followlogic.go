@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 	"errors"
-	"fansX/common/util"
 	"fansX/internal/model/database"
+	"fansX/internal/util"
 	"fansX/services/relation/internal/svc"
 	"fansX/services/relation/proto/relationRpc"
 	"gorm.io/gorm"

@@ -3,9 +3,9 @@ package lua
 import (
 	"context"
 	"errors"
-	luaHash "fansX/common/lua/script/hash"
-	luaString "fansX/common/lua/script/string"
-	luaZset "fansX/common/lua/script/zset"
+	luaHash2 "fansX/internal/middleware/lua/script/hash"
+	"fansX/internal/middleware/lua/script/string"
+	luaZset2 "fansX/internal/middleware/lua/script/zset"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 )
@@ -50,11 +50,11 @@ func (e *Executor) Load(ctx context.Context, scripts []Script) (int, error) {
 
 func (e *Executor) LoadAll() error {
 	_, err := e.Load(context.Background(), []Script{
-		luaZset.GetRevRange(),
-		luaZset.GetCreate(),
-		luaZset.GetGetField(),
-		luaHash.GetCreate(),
-		luaHash.GetGetField(),
+		luaZset2.GetRevRange(),
+		luaZset2.GetCreate(),
+		luaZset2.GetGetField(),
+		luaHash2.GetCreate(),
+		luaHash2.GetGetField(),
 		luaString.GetIncrBy(),
 	})
 	return err

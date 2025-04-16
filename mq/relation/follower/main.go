@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fansX/common/lua"
+	lua2 "fansX/internal/middleware/lua"
 	interlua "fansX/mq/relation/follower/lua"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
@@ -18,12 +18,12 @@ func main() {
 	if err := client.Ping(context.Background()); err != nil {
 		panic(err)
 	}
-	executor := lua.NewExecutor(client)
+	executor := lua2.NewExecutor(client)
 	err := executor.LoadAll()
 	if err != nil {
 		panic(err.Error())
 	}
-	_, err = executor.Load(context.Background(), []lua.Script{interlua.GetAdd()})
+	_, err = executor.Load(context.Background(), []lua2.Script{interlua.GetAdd()})
 	if err != nil {
 		panic(err.Error())
 	}

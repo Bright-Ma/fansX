@@ -1,0 +1,63 @@
+syntax = "proto3";
+package likeRpc;
+option go_package = "./likeRpc";
+import "google/protobuf/empty.proto";
+
+service LikeService{
+  rpc like(likeReq)returns(empty);
+  rpc cancelLike(cancelLikeReq)returns(empty);
+  rpc listUserLikes(listUserLikesReq)returns(listUserLikesResp);
+  rpc listLikes(listLikesReq)returns(listLikesResp);
+  rpc getLikeNums(getLikeNumsReq)returns(getLikeNumsResp);
+}
+
+message likeReq{
+  int32 businessId =1;
+  int64 userId=2;
+  int64 likeId=3;
+  int64 timeStamp=4;
+}
+
+message cancelLikeReq{
+  int32 businessId=1;
+  int64 userId=2;
+  int64 likeId=3;
+  int64 timeStamp=4;
+}
+
+message listUserLikesReq{
+  int32 BusinessId=1;
+  int64 userId=2;
+  int64 timeStamp =3;
+  int64 limit =4;
+}
+
+message listUserLikesResp{
+  repeated int64 LikeId=1;
+  repeated int64 timeStamp =2;
+}
+
+message listLikesReq{
+  int32 businessId=1;
+  int64 LikeId=2;
+  int64 timeStamp=3;
+  int64 limit=4;
+}
+
+message listLikesResp{
+  repeated int64 userId=1;
+  repeated int64 timeStamp=2;
+}
+
+message getLikeNumsReq{
+  int32 businessId=1;
+  int64 likeId=2;
+}
+
+message getLikeNumsResp{
+  bool have =1;
+  int64 nums=2;
+}
+
+message empty{
+}

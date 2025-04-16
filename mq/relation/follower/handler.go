@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fansX/common/lua"
-	luaString "fansX/common/lua/script/string"
+	"fansX/internal/middleware/lua"
+	"fansX/internal/middleware/lua/script/string"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
 	interlua "fansX/mq/relation/follower/lua"

@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"fansX/common/util"
+	"fansX/internal/util"
 	leaf "fansX/pkg/leaf-go"
 	"fansX/services/content/meta/internal/config"
 	"gorm.io/driver/mysql"

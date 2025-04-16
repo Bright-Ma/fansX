@@ -19,6 +19,9 @@ func main() {
 		&database.FollowingNums{},
 		&database.VisibleContentInfo{},
 		&database.InvisibleContentInfo{},
+		&database.Like{},
+		&database.TimeWindow{},
+		&database.WindowLatest{},
 	)
 	if err != nil {
 		panic(err.Error())

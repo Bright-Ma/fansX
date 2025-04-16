@@ -1,8 +1,8 @@
 package svc
 
 import (
-	"fansX/common/lua"
-	"fansX/common/util"
+	"fansX/internal/middleware/lua"
+	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
 	leaf "fansX/pkg/leaf-go"
 	"fansX/services/relation/internal/config"

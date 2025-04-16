@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fansX/common/util"
+	"fansX/internal/util"
 	"fmt"
 	"github.com/IBM/sarama"
 	"gorm.io/driver/mysql"

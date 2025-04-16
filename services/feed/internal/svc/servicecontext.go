@@ -2,9 +2,9 @@ package svc
 
 import (
 	"context"
-	"fansX/common/lua"
-	"fansX/common/util"
 	bigcache "fansX/internal/middleware/cache"
+	"fansX/internal/middleware/lua"
+	"fansX/internal/util"
 	"fansX/services/content/public/proto/publicContentRpc"
 	"fansX/services/feed/internal/config"
 	"fansX/services/relation/proto/relationRpc"

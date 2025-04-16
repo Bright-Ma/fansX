@@ -3,7 +3,7 @@ package snowflake
 import (
 	"context"
 	"errors"
-	"fansX/common/util"
+	"fansX/internal/util"
 	"fmt"
 	"github.com/bwmarrin/snowflake"
 	etcd "go.etcd.io/etcd/client/v3"

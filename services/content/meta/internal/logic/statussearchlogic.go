@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 	"errors"
-	"fansX/common/util"
 	"fansX/internal/model/database"
+	"fansX/internal/util"
 	"time"
 
 	"fansX/services/content/meta/internal/svc"

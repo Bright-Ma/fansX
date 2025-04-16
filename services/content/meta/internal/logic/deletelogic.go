@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 	"errors"
-	"fansX/common/util"
 	"fansX/internal/model/database"
+	"fansX/internal/util"
 	"fansX/services/content/meta/internal/svc"
 	"fansX/services/content/meta/proto/metaContentRpc"
 	"github.com/zeromicro/go-zero/core/logx"
