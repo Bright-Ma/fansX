@@ -19,15 +19,17 @@ type Handler struct {
 	db       *gorm.DB
 	client   *redis.Client
 	creator  leaf.Core
-	consumer Consumer
+	consumer *Consumer
 }
 
-func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
-	h.consumer
+func (h *Handler) Setup(session sarama.ConsumerGroupSession) error {
+	h.consumer = NewConsumer(session, h.db)
+	go h.consumer.Consume()
 	return nil
 }
 
 func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
+	h.consumer.Close()
 	return nil
 }
 
@@ -41,7 +43,10 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 		}
 
 		err = h.process(message)
-		if err != nil {
+		if errors.Is(err, ErrNeedNotConsume) {
+			session.MarkMessage(msg, "")
+			continue
+		} else if err != nil {
 			continue
 		}
 
@@ -72,9 +77,9 @@ func (h *Handler) process(message *mq.Like) error {
 	} else if err == nil {
 		if record.Status == status || record.UpdatedAt > message.TimeStamp {
 			tx.Commit()
-			return nil
+			return ErrNeedNotConsume
 		}
-		err = tx.Take(record).Update("status = ?", status).Update("updated_at = ?", message.TimeStamp).Error
+		err = tx.Take(record).Update("status = ?", status).Update("updated_at", message.TimeStamp).Error
 		if err != nil {
 			tx.Rollback()
 			slog.Error("update like record:" + err.Error())
@@ -117,5 +122,8 @@ func (h *Handler) process(message *mq.Like) error {
 	}
 
 	return nil
-
 }
+
+var (
+	ErrNeedNotConsume = errors.New("need not consume")
+)

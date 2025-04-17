@@ -3,9 +3,6 @@ package lua
 import (
 	"context"
 	"errors"
-	luaHash2 "fansX/internal/middleware/lua/script/hash"
-	"fansX/internal/middleware/lua/script/string"
-	luaZset2 "fansX/internal/middleware/lua/script/zset"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 )
@@ -22,7 +19,7 @@ func NewExecutor(client *redis.Client) *Executor {
 	}
 }
 
-func (e *Executor) Load(ctx context.Context, scripts []Script) (int, error) {
+func (e *Executor) Load(ctx context.Context, scripts []*Script) (int, error) {
 	for i, script := range scripts {
 		_, ok := e.sha[script.Name()]
 		if ok {
@@ -48,18 +45,6 @@ func (e *Executor) Load(ctx context.Context, scripts []Script) (int, error) {
 	return 0, nil
 }
 
-func (e *Executor) LoadAll() error {
-	_, err := e.Load(context.Background(), []Script{
-		luaZset2.GetRevRange(),
-		luaZset2.GetCreate(),
-		luaZset2.GetGetField(),
-		luaHash2.GetCreate(),
-		luaHash2.GetGetField(),
-		luaString.GetIncrBy(),
-	})
-	return err
-}
-
-func (e *Executor) Execute(ctx context.Context, script Script, keys []string, args ...interface{}) *redis.Cmd {
+func (e *Executor) Execute(ctx context.Context, script *Script, keys []string, args ...interface{}) *redis.Cmd {
 	return e.client.EvalSha(ctx, e.sha[script.Name()], keys, args...)
 }

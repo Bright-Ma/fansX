@@ -18,8 +18,10 @@ type Like struct {
 }
 
 type LikeCount struct {
-	id       int64 `gorm:"PRIMARY_KEY"`
-	Business int   `gorm:"not null"`
+	Id       int64 `gorm:"PRIMARY_KEY"`
+	Business int   `gorm:"not null;index:like,priority:10"`
+	LikeId   int64 `gorm:"not null;index:like,priority:20"`
+	Count    int64 `gorm:"not null;default:0"`
 }
 
 type TimeWindow struct {
@@ -34,8 +36,12 @@ type TimeWindow struct {
 
 type WindowLatest struct {
 	Id         int64 `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
-	Business   int   `gorm:"not null"`
 	NextWindow int64 `gorm:"not null"`
+}
+
+type WindowBody struct {
+	// Like {a,b}->c,a->business,b->likeId(>0 like,<0 cancel)
+	Like map[[2]int64][]int64 `json:"like"`
 }
 
 const (

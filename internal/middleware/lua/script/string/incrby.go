@@ -1,18 +1,5 @@
 package luaString
 
-type incrBy struct {
-	name     string
-	function string
-}
-
-func (i *incrBy) Name() string {
-	return i.name
-}
-
-func (i *incrBy) Function() string {
-	return i.function
-}
-
 var incrByScript *incrBy
 
 func init() {
@@ -31,8 +18,4 @@ redis.call("INCRBY",key,num)
 
 return "ok"
 `
-}
-
-func GetIncrBy() *incrBy {
-	return incrByScript
 }

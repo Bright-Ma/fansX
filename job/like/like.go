@@ -1,0 +1,5 @@
+package like
+
+func main() {
+
+}
