@@ -29,6 +29,31 @@ func (c *Creator) GetId() (int64, bool) {
 	return res, true
 }
 
+func (c *Creator) GetIdWithContext(ctx context.Context) (int64, error) {
+	var id int64
+	var ok bool
+	for {
+		select {
+		case <-ctx.Done():
+			return 0, ctx.Err()
+		default:
+			id, ok = c.GetId()
+			if !ok {
+				time.Sleep(time.Millisecond * 50)
+				continue
+			}
+		}
+		break
+	}
+	return id, ctx.Err()
+}
+
+func (c *Creator) GetIdWithTimeout(timeout time.Duration) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return c.GetIdWithContext(ctx)
+}
+
 // preApplication 向数据库预申请号段
 func (c *Creator) preApplication() {
 	for {

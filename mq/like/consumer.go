@@ -1,53 +1,40 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	leaf "fansX/pkg/leaf-go"
-	"github.com/IBM/sarama"
+	"fansX/internal/script/likeconsumerscript"
 	"gorm.io/gorm"
 	"log/slog"
+	"strconv"
 	"time"
 )
 
 type Consumer struct {
-	session sarama.ConsumerGroupSession
-	db      *gorm.DB
-	creator leaf.Core
-	ch      chan SendMessage
-	close   chan int
-	window  map[int64]map[[2]int64][]int64
-	msgSet  []*sarama.ConsumerMessage
+	db       *gorm.DB
+	ch       chan *mq.Like
+	close    chan bool
+	change   map[[2]int64]int64
+	executor *lua.Executor
 }
 
-type SendMessage struct {
-	KafkaMessage *sarama.ConsumerMessage
-	Like         *mq.Like
-}
-
-func NewConsumer(session sarama.ConsumerGroupSession, db *gorm.DB) *Consumer {
-	ch := make(chan SendMessage, 1024*1024)
+func NewConsumer(db *gorm.DB) *Consumer {
+	ch := make(chan *mq.Like, 1024*1024)
 	return &Consumer{
-		db:      db,
-		session: session,
-		ch:      ch,
-		close:   make(chan int, 1),
-		window:  make(map[int64]map[[2]int64][]int64),
-		msgSet:  make([]*sarama.ConsumerMessage, 0),
+		db: db,
+		ch: ch,
 	}
 }
 
-func (c *Consumer) Send(like *mq.Like, msg *sarama.ConsumerMessage) {
-	c.ch <- SendMessage{
-		KafkaMessage: msg,
-		Like:         like,
-	}
+func (c *Consumer) Send(like *mq.Like) {
+	c.ch <- like
 }
 
 func (c *Consumer) Close() {
 	close(c.ch)
-	c.close <- 1
+	c.close <- true
 }
 
 func (c *Consumer) Consume() {
@@ -55,103 +42,38 @@ func (c *Consumer) Consume() {
 	for {
 		select {
 		case msg := <-c.ch:
-			c.AddToWindow(msg.Like)
-			c.msgSet = append(c.msgSet, msg.KafkaMessage)
-		case <-tick:
-			err := c.UpdateCountTable()
-			if err == nil {
-				c.MarkMessage()
+			if msg.Cancel == true {
+				c.change[[2]int64{int64(msg.Business), msg.LikeId}]--
+			} else {
+				c.change[[2]int64{int64(msg.Business), msg.LikeId}]++
 			}
+		case <-tick:
+			c.Update()
 		case <-c.close:
 			return
 		}
 	}
 }
 
-func (c *Consumer) AddToWindow(msg *mq.Like) {
-	if msg.Cancel == true {
-		msg.LikeId = -msg.LikeId
-	}
-	_, ok := c.window[msg.TimeStamp]
-	if !ok {
-		c.window[msg.TimeStamp] = make(map[[2]int64][]int64)
-	}
-	index := [2]int64{int64(msg.Business), msg.LikeId}
-	list, ok := c.window[msg.TimeStamp][index]
-	if !ok {
-		c.window[msg.TimeStamp][index] = make([]int64, 0)
-		list = c.window[msg.TimeStamp][index]
-	}
-	list = append(list, msg.UserId)
-}
-
-func (c *Consumer) UpdateCountTable() error {
-	for window, list := range c.window {
-		var id int64
-		var ok bool
-		for {
-			id, ok = c.creator.GetId()
-			if !ok {
-				time.Sleep(time.Millisecond * 50)
-				continue
-			}
-			break
-		}
-		record := database.TimeWindow{
-			Id:     id,
-			Window: window,
-			Body:   nil,
-		}
-		body := database.WindowBody{
-			Like: make(map[[2]int64][]int64),
-		}
-
-		for index, user := range list {
-			body.Like[index] = user
-		}
-		b, err := json.Marshal(body)
-		if err != nil {
-			slog.Error("marshal json:" + err.Error())
-			return err
-		}
-		record.Body = b
-		tx := c.db.Begin()
-
-		err = tx.Create(record).Error
+func (c *Consumer) Update() {
+	db := c.db
+	executor := c.executor
+	for k, v := range c.change {
+		timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+		tx := db.WithContext(timeout).Begin()
+		err := tx.Model(&database.LikeCount{}).Where("business = ? and like_id = ?", k[0], k[1]).
+			Update("like_count", gorm.Expr("like_count + ?", v)).Error
 		if err != nil {
 			tx.Rollback()
-			slog.Error("create window record:" + err.Error())
-			return err
+			slog.Error("update like count:"+err.Error(), "business", k[0], "like_id", k[1])
 		}
-		for like, user := range body.Like {
-			if like[1] < 0 {
-				like[1] = -like[1]
-				err = tx.Where("business = ? and like_id = ?", like[0], like[1]).
-					Update("count", gorm.Expr("count - ?", len(user))).Error
-				if err != nil {
-					slog.Error("update like count table(-):" + err.Error())
-					tx.Rollback()
-					return err
-				}
-			} else {
-				err = tx.Where("business = ? and like_id = ?", like[0], like[1]).
-					Update("count", gorm.Expr("count + ?", len(user))).Error
-				if err != nil {
-					slog.Error("update like count table(+):" + err.Error())
-					tx.Rollback()
-					return err
-				}
-			}
-		}
-		tx.Commit()
+		executor.Execute(timeout, likeconsumerscript.AddScript, []string{
+			"LikeNums:" + strconv.Itoa(int(k[0])) + ":" + strconv.FormatInt(k[1], 10),
+			"false",
+		}, v)
+
+		cancel()
 	}
 
-	return nil
-
-}
-
-func (c *Consumer) MarkMessage() {
-	for _, msg := range c.msgSet {
-		c.session.MarkMessage(msg, "")
-	}
+	return
 }

@@ -3,16 +3,18 @@ package segment
 import (
 	"gorm.io/gorm"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type Creator struct {
-	id  int64
-	mu  sync.Mutex
-	db  *gorm.DB
-	ch  chan int
-	old *buffer
-	new *buffer
+	id         int64
+	mu         sync.Mutex
+	bufPrepare *atomic.Bool
+	db         *gorm.DB
+	ch         chan int
+	old        *buffer
+	new        *buffer
 }
 
 type buffer struct {

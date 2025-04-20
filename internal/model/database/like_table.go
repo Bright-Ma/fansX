@@ -21,12 +21,28 @@ type LikeCount struct {
 	Id       int64 `gorm:"PRIMARY_KEY"`
 	Business int   `gorm:"not null;index:like,priority:10"`
 	LikeId   int64 `gorm:"not null;index:like,priority:20"`
+	Status   int64 `gorm:"not null;index:like,priority:30"`
 	Count    int64 `gorm:"not null;default:0"`
 }
 
+const (
+	BusinessContent = 1
+)
+
+const (
+	LikeStatusLike   = 1
+	LikeStatusUnlike = 0
+)
+
+/*
+	以下弃用，原为聚合消息对账提供帮助
+*/
+
 type TimeWindow struct {
-	Id     int64 `gorm:"PRIMARY_KEY"`
-	Window int64 `gorm:"index:window"`
+	Id       int64 `gorm:"PRIMARY_KEY"`
+	Business int64 `gorm:"not null;index:window,priority:10"`
+	Window   int64 `gorm:"index:window,priority:20"`
+	Status   int64 `gorm:"not null;index:window,priority:30"`
 
 	Body []byte `gorm:"size:204800"`
 
@@ -36,15 +52,11 @@ type TimeWindow struct {
 
 type WindowLatest struct {
 	Id         int64 `gorm:"PRIMARY_KEY;AUTO_INCREMENT"`
+	Business   int64 `gorm:"not null"`
 	NextWindow int64 `gorm:"not null"`
 }
 
 type WindowBody struct {
-	// Like {a,b}->c,a->business,b->likeId(>0 like,<0 cancel)
-	Like map[[2]int64][]int64 `json:"like"`
+	//
+	Like map[int64][]int64 `json:"like"`
 }
-
-const (
-	LikeStatusLike   = 1
-	LikeStatusUnlike = 0
-)

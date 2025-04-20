@@ -12,6 +12,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"log/slog"
 	"strconv"
 	"time"
@@ -98,6 +99,7 @@ func Translate(message *mq.PublicContentJson) *database.VisibleContentInfo {
 
 func (h *Handler) handleDelete(record *database.VisibleContentInfo) error {
 	h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
+	h.db.Delete(&database.LikeCount{}, "business = ? and like_id = ?", database.BusinessContent, record.Id)
 	return nil
 }
 
@@ -130,5 +132,8 @@ func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
 	}
 
 	return nil
+}
 
+func (h *Handler) CreateLikeRecord(record *database.VisibleContentInfo) error {
+	h.db.Model(&database.LikeCount{}).Clauses(clause.Locking{Strength: "UPDATE"}).Where("")
 }

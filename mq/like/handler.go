@@ -4,14 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
+	"fansX/internal/script/likeconsumerscript"
 	leaf "fansX/pkg/leaf-go"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"log/slog"
+	"strconv"
 	"time"
 )
 
@@ -20,10 +23,11 @@ type Handler struct {
 	client   *redis.Client
 	creator  leaf.Core
 	consumer *Consumer
+	executor *lua.Executor
 }
 
-func (h *Handler) Setup(session sarama.ConsumerGroupSession) error {
-	h.consumer = NewConsumer(session, h.db)
+func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
+	h.consumer = NewConsumer(h.db)
 	go h.consumer.Consume()
 	return nil
 }
@@ -42,20 +46,19 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 			continue
 		}
 
-		err = h.process(message)
-		if errors.Is(err, ErrNeedNotConsume) {
+		need, err := h.process(message)
+		if err == nil {
 			session.MarkMessage(msg, "")
-			continue
-		} else if err != nil {
-			continue
+			if need {
+				h.consumer.Send(message)
+			}
 		}
-
 	}
 
 	return nil
 }
 
-func (h *Handler) process(message *mq.Like) error {
+func (h *Handler) process(message *mq.Like) (bool, error) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
@@ -73,19 +76,30 @@ func (h *Handler) process(message *mq.Like) error {
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		slog.Error("search like record from tidb:" + err.Error())
 		tx.Commit()
-		return err
+		return false, err
 	} else if err == nil {
-		if record.Status == status || record.UpdatedAt > message.TimeStamp {
+		if record.UpdatedAt >= message.TimeStamp {
 			tx.Commit()
-			return ErrNeedNotConsume
+			return false, nil
 		}
 		err = tx.Take(record).Update("status = ?", status).Update("updated_at", message.TimeStamp).Error
 		if err != nil {
 			tx.Rollback()
 			slog.Error("update like record:" + err.Error())
+			return false, err
 		}
-		return err
+		tx.Commit()
+		if status == record.Status {
+			return false, nil
+		}
+		return true, nil
 	}
+
+	return true, h.CreateRecord(timeout, message, tx, status)
+
+}
+
+func (h *Handler) CreateRecord(timeout context.Context, message *mq.Like, tx *gorm.DB, status int) error {
 
 	creator := h.creator
 	var id int64
@@ -105,7 +119,7 @@ func (h *Handler) process(message *mq.Like) error {
 		}
 		break
 	}
-	record = &database.Like{
+	record := &database.Like{
 		Id:        id,
 		Business:  int(message.Business),
 		Status:    status,
@@ -114,16 +128,35 @@ func (h *Handler) process(message *mq.Like) error {
 		UpdatedAt: message.TimeStamp,
 	}
 
-	err = tx.Create(record).Error
+	err := tx.Create(record).Error
 	if err != nil {
 		tx.Rollback()
 		slog.Error("create like record:" + err.Error())
 		return err
 	}
+	tx.Commit()
 
 	return nil
 }
 
-var (
-	ErrNeedNotConsume = errors.New("need not consume")
-)
+func (h *Handler) UpdateRedis(message *mq.Like) {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+
+	err := h.client.Del(timeout, "LikeNums:"+strconv.Itoa(int(message.Business))+":"+strconv.FormatInt(message.LikeId, 10)).Err()
+	if err != nil {
+		slog.Error("delete user like nums:" + err.Error())
+	}
+
+	err = h.client.Del(timeout, "UserLikeList:"+strconv.FormatInt(int64(message.Business), 10)+":"+strconv.FormatInt(message.UserId, 10)).Err()
+	if err != nil {
+		slog.Error("delete user like list:" + err.Error())
+	}
+	err = h.executor.Execute(timeout, likeconsumerscript.InsertScript, []string{
+		"LikeList:" + strconv.Itoa(int(message.Business)) + ":" + strconv.FormatInt(message.LikeId, 10),
+		"false",
+	}, message.TimeStamp, message.UserId).Err()
+	if err != nil {
+		slog.Error("insert user to like list:" + err.Error())
+	}
+}

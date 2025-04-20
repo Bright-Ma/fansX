@@ -1,3 +1,8 @@
+redis =require"redis"
+local KEYS={}
+local ARGV={}
+--上述三行为了防止报错，在使用时将其删除
+
 local key=KEYS[1]
 local all=KEYS[2]
 local del=KEYS[3]

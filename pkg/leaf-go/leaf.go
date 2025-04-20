@@ -3,8 +3,9 @@ package leaf_go
 import (
 	"context"
 	"errors"
-	segment2 "fansX/pkg/leaf-go/segment"
-	snowflake2 "fansX/pkg/leaf-go/snowflake"
+	"fansX/pkg/leaf-go/segment"
+	"fansX/pkg/leaf-go/snowflake"
+	"time"
 )
 
 type Config struct {
@@ -21,19 +22,23 @@ var (
 // Core leaf-go的核心，提供GetId接口，返回true时认为正常工作，false则认为存在错误
 type Core interface {
 	GetId() (int64, bool)
+	// GetIdWithContext 内部循环调用GetId，context超时则返回err，请保证传入的ctx带有超时时间
+	GetIdWithContext(ctx context.Context) (int64, error)
+	// GetIdWithTimeout 内部调用GetIdWithContext
+	GetIdWithTimeout(time.Duration) (int64, error)
 }
 
 // Init 创建一个实现GetId的实例，注意传入config时，需要指明开启哪种模式以及对应的config
 func Init(c *Config) (Core, error) {
 	if c.Model == Segment {
-		return segment2.NewCreator(&segment2.Config{
+		return segment.NewCreator(&segment.Config{
 			Name:     c.SegmentConfig.Name,
 			UserName: c.SegmentConfig.UserName,
 			Password: c.SegmentConfig.Password,
 			Address:  c.SegmentConfig.Address,
 		})
 	} else if c.Model == Snowflake {
-		return snowflake2.NewCreator(context.Background(), &snowflake2.Config{
+		return snowflake.NewCreator(context.Background(), &snowflake.Config{
 			CreatorName: c.SnowflakeConfig.CreatorName,
 			Addr:        c.SnowflakeConfig.Addr,
 			EtcdAddr:    c.SnowflakeConfig.EtcdAddr,
