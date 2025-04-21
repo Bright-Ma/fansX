@@ -1,0 +1,69 @@
+syntax = "proto3";
+package commentRpc;
+option go_package = "./commentRpc";
+import "google/protobuf/empty.proto";
+
+service CommentService {
+  rpc comment(commentReq)returns(empty);
+  rpc delComment(delCommentReq)returns(empty);
+  rpc getCommentListByHot(getCommentListByHotReq)returns(CommentListResp);
+  rpc getCommentListByTime(getCommentListByTimeReq)returns(CommentListResp);
+  rpc getReplyCommentList(getReplyCommentListReq)returns(CommentListResp);
+  rpc getCommentCount(getCommentCountReq)returns(getCommentCountResp);
+}
+
+message commentReq {
+  int64 userId=1;
+  int64 contentId =2;
+  int64 rootId=3;
+  int64 parentId=4;
+  string shortText=5;
+  string longTextUri=6;
+}
+
+message delCommentReq{
+  int64 userId=1;
+  int64 commentId=2;
+}
+
+message getCommentListByHotReq{
+  int64 contentId=1;
+  int64 limit=2;
+  int64 offset=3;
+}
+
+message getCommentListByTimeReq{
+  int64 contentId=1;
+  int64 limit=2;
+  int64 timeStamp=3;
+}
+message getReplyCommentListReq{
+  int64 contentId=1;
+  int64 rootId=2;
+  int64 limit=3;
+  int64 timeStamp=4;
+}
+
+message CommentListResp{
+  repeated  int64 CommentId=1;
+  repeated int64 UserId=2;
+  repeated int64 ContentId=3;
+  repeated int64 RootId=4;
+  repeated int64 ParentId=5;
+  repeated int64 createdAt=6;
+  repeated string ShortText=7;
+  repeated string LongTextUri=8;
+}
+
+message getCommentCountReq{
+  int32 business =1;
+  int64 countId=2;
+}
+
+message getCommentCountResp{
+  int64 count=1;
+}
+
+message empty{
+}
+

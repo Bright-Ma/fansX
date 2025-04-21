@@ -27,6 +27,7 @@ type LikeCount struct {
 
 const (
 	BusinessContent = 1
+	BusinessComment = 2
 )
 
 const (
