@@ -7,7 +7,7 @@ import (
 	"fansX/internal/model/database"
 	"fansX/internal/script/commentservicescript"
 	"fansX/internal/util"
-	"github.com/go-redsync/redsync/v4"
+	syncx "fansX/pkg/sync"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
@@ -132,7 +132,7 @@ func (l *GetCommentCountLogic) BuildCommentCountLocal(key string, count int64) {
 }
 
 func (l *GetCommentCountLogic) BuildCommentCountRedis(key string, count int64, logger *slog.Logger) {
-	mutex := l.svcCtx.RedSync.NewMutex(key, redsync.WithExpiry(time.Second))
+	mutex := l.svcCtx.Sync.NewMutex(key+":mutex", syncx.WithUtil(time.Second*5), syncx.WithTTL(time.Second*3))
 	err := mutex.TryLock()
 	if err != nil {
 		logger.Debug("try to get redis lock failed:" + err.Error())
@@ -143,7 +143,7 @@ func (l *GetCommentCountLogic) BuildCommentCountRedis(key string, count int64, l
 	defer cancel()
 	value := strconv.FormatInt(count, 10) + ";" + strconv.FormatInt(time.Now().Add(time.Second*60).Unix(), 10)
 	l.svcCtx.Client.Set(timeout, key, value, 70*time.Second)
-	_, _ = mutex.Unlock()
+	_ = mutex.Unlock()
 	return
 }
 

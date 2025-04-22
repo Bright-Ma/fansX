@@ -55,6 +55,7 @@ message CommentListResp{
   repeated string LongTextUri=8;
 }
 
+
 message getCommentCountReq{
   int32 business =1;
   int64 countId=2;

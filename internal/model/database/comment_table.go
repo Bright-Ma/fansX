@@ -2,6 +2,7 @@ package database
 
 import "time"
 
+// Comment 若RootId==0 则该评论为根评论
 type Comment struct {
 	Id        int64 `gorm:"PRIMARY_KEY;"`
 	UserId    int64 `gorm:"not null;"`
@@ -24,6 +25,11 @@ type CommentCount struct {
 	CountId  int64 `gorm:"not null;index:count,priority:20"`
 	Count    int64 `gorm:"not null;"`
 }
+
+const (
+	CommentStatusCommon = 1
+	CommentStatusDelete = 2
+)
 
 // comment幂等控制
 // comment并发控制 kafka key有序

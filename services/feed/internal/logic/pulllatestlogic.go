@@ -7,7 +7,7 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/middleware/lua/script/zset"
 	"fansX/internal/util"
-	heapx "fansX/pkg/heapx"
+	heapx "fansX/pkg/heap"
 	"fansX/services/content/public/proto/publicContentRpc"
 	interlua "fansX/services/feed/internal/lua"
 	"fansX/services/relation/proto/relationRpc"
