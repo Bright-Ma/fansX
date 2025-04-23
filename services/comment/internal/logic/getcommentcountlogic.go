@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
-	"strings"
 	"time"
 
 	"fansX/services/comment/internal/svc"
@@ -50,44 +49,58 @@ func (l *GetCommentCountLogic) GetCommentCount(in *commentRpc.GetCommentCountReq
 		count := binary.BigEndian.Uint64(b)
 		return &commentRpc.GetCommentCountResp{Count: int64(count)}, nil
 	}
-	hot := cache.IsHotKey(key)
-
-	count, status, err := l.GetCommentCountFromRedis(timeout, key, logger)
+	count, status := l.GetFromRedis(timeout, key, logger)
 	if status == StatusFind {
-		return &commentRpc.GetCommentCountResp{Count: count}, err
+		return &commentRpc.GetCommentCountResp{Count: count}, nil
+	} else if status == StatusNeedRebuild {
+		go func() {
+			mutex := l.svcCtx.Sync.NewMutex(key+":mutex", syncx.WithUtil(time.Second*5), syncx.WithTTL(time.Second))
+			if mutex.TryLock() == nil {
+				count, err := l.GetFromTiDB(timeout, logger, in)
+				if err == nil {
+					l.BuildRedis(key, count, logger)
+				}
+				_ = mutex.Unlock()
+			}
+		}()
+		return &commentRpc.GetCommentCountResp{Count: count}, nil
+	} else if status == StatusError {
+		count, err := l.GetFromTiDB(timeout, logger, in)
+		if err != nil {
+			return nil, err
+		}
+		return &commentRpc.GetCommentCountResp{Count: count}, nil
 	}
-
-	count, err = l.GetCommentCountFromTiDB(timeout, logger, in)
+	count, err := l.GetFromTiDB(timeout, logger, in)
 	if err != nil {
-		return &commentRpc.GetCommentCountResp{Count: count}, err
+		return nil, err
 	}
-	l.BuildCommentCountCache(key, count, hot, status, logger)
-	return &commentRpc.GetCommentCountResp{Count: count}, err
+	go l.BuildRedis(key, count, logger)
+	return &commentRpc.GetCommentCountResp{Count: count}, nil
 }
 
-func (l *GetCommentCountLogic) GetCommentCountFromRedis(ctx context.Context, key string, logger *slog.Logger) (count int64, status int, err error) {
+func (l *GetCommentCountLogic) GetFromRedis(ctx context.Context, key string, logger *slog.Logger) (int64, int) {
 	executor := l.svcCtx.Executor
-	res, err := executor.Execute(ctx, commentservicescript.GetCountScript, []string{key}).Result()
+	resp, err := executor.Execute(ctx, commentservicescript.GetCountScript, []string{key}).Result()
 	if err != nil {
 		logger.Error("get comment count from redis:" + err.Error())
-		return 0, StatusError, err
+		return 0, StatusError
 	}
-	if res == nil {
-		return 0, StatusNotFind, nil
+	status, _ := strconv.ParseInt(resp.([]interface{})[1].(string), 10, 64)
+	if status == StatusNotFind {
+		logger.Debug("comment count not exists from redis")
+		return 0, int(status)
+	} else if status == StatusNeedRebuild {
+		logger.Info("get comment count from redis but need to rebuild")
+	} else {
+		logger.Info("get comment list from redis")
 	}
 
-	str := strings.Split(res.(string), ";")
-	count, _ = strconv.ParseInt(str[0], 10, 64)
-	stamp, _ := strconv.ParseInt(str[1], 10, 64)
-	if time.Now().Unix() > stamp {
-		logger.Debug("get comment count form redis and need to rebuild")
-		return count, StatusNeedRebuild, nil
-	}
-	logger.Debug("get comment count from redis")
-	return count, StatusFind, nil
+	count, _ := strconv.ParseInt(resp.([]interface{})[0].(string), 10, 64)
+	return count, int(status)
 }
 
-func (l *GetCommentCountLogic) GetCommentCountFromTiDB(ctx context.Context, logger *slog.Logger, in *commentRpc.GetCommentCountReq) (count int64, err error) {
+func (l *GetCommentCountLogic) GetFromTiDB(ctx context.Context, logger *slog.Logger, in *commentRpc.GetCommentCountReq) (count int64, err error) {
 
 	db := l.svcCtx.DB.WithContext(ctx)
 	record := database.CommentCount{}
@@ -106,44 +119,12 @@ func (l *GetCommentCountLogic) GetCommentCountFromTiDB(ctx context.Context, logg
 	return
 }
 
-func (l *GetCommentCountLogic) BuildCommentCountCache(key string, count int64, hot bool, status int, logger *slog.Logger) {
-	if hot {
-		logger.Debug("build comment count local cache")
-		l.BuildCommentCountLocal(key, count)
-	}
-	if status == StatusNeedRebuild || status == StatusNotFind {
-		go func() {
-			l.BuildCommentCountRedis(key, count, logger)
-		}()
-	}
-}
-
-func (l *GetCommentCountLogic) BuildCommentCountLocal(key string, count int64) {
-	b := make([]byte, 8)
-	binary.BigEndian.AppendUint64(b, uint64(count))
-	if count >= 10000 {
-		l.svcCtx.Cache.Set(key, b, 60)
-	} else if count >= 1000 {
-		l.svcCtx.Cache.Set(key, b, 10)
-	} else {
-		l.svcCtx.Cache.Set(key, b, 5)
-	}
-	return
-}
-
-func (l *GetCommentCountLogic) BuildCommentCountRedis(key string, count int64, logger *slog.Logger) {
-	mutex := l.svcCtx.Sync.NewMutex(key+":mutex", syncx.WithUtil(time.Second*5), syncx.WithTTL(time.Second*3))
-	err := mutex.TryLock()
-	if err != nil {
-		logger.Debug("try to get redis lock failed:" + err.Error())
-		return
-	}
+func (l *GetCommentCountLogic) BuildRedis(key string, count int64, logger *slog.Logger) {
 	logger.Debug("try to get redis lock success")
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	value := strconv.FormatInt(count, 10) + ";" + strconv.FormatInt(time.Now().Add(time.Second*60).Unix(), 10)
-	l.svcCtx.Client.Set(timeout, key, value, 70*time.Second)
-	_ = mutex.Unlock()
+	value := strconv.FormatInt(count, 10) + ";" + strconv.FormatInt(5, 10)
+	l.svcCtx.Client.Set(timeout, key, value, 30*time.Second)
 	return
 }
 

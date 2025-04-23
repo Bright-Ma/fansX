@@ -79,6 +79,8 @@ func (m *Mutex) TryLock() error {
 	}
 	m.value = value
 	go func() {
+		timeout, cancel := context.WithTimeout(context.Background(), m.util)
+		defer cancel()
 		client := m.sync.client
 		sha := m.sync.keepaliveSha
 		for {
@@ -88,6 +90,8 @@ func (m *Mutex) TryLock() error {
 				if err != nil || res == nil {
 					return
 				}
+			case <-timeout.Done():
+				return
 			}
 		}
 	}()

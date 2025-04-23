@@ -6,8 +6,7 @@ import (
 	"fansX/internal/model/database"
 	"fansX/internal/script/commentservicescript"
 	"fansX/internal/util"
-	"github.com/redis/go-redis/v9"
-	"google.golang.org/genproto/googleapis/privacy/dlp/v2"
+	syncx "fansX/pkg/sync"
 	"log/slog"
 	"strconv"
 	"time"
@@ -61,41 +60,37 @@ func (l *GetCommentListByHotLogic) GetCommentListByHot(in *commentRpc.GetComment
 		if err != nil {
 			panic(err.Error())
 		}
-
+		return l.HotGet(value, int(in.Limit), int(in.Offset)), nil
 	}
-	hot := cache.IsHotKey(key)
 
-	if hot {
-		records, status := l.GetCommentListByHotFromRedis(timeout, key, 1000, 0, logger)
-		if status { //change
-			resp := HotToResp(records)
-			b, err := json.Marshal(resp)
-			if err != nil {
-				logger.Error("marshal comment list by hot json:" + err.Error())
+	records, status := l.GetFromRedis(timeout, key, int(in.Limit), int(in.Offset), logger)
+	if status == StatusFind {
+		return l.HotToResp(records), nil
+	} else if status == StatusNeedRebuild {
+		go func() {
+			mutex := l.svcCtx.Sync.NewMutex(key+":mutex", syncx.WithTTL(time.Second), syncx.WithUtil(time.Second*5))
+			if mutex.TryLock() == nil {
+				records, err := l.GetFromTiDB(timeout, in, 1000, 0, logger)
+				if err == nil {
+					l.BuildRedis(key, records)
+				}
+				_ = mutex.Unlock()
 			}
-			cache.Set(key, b, 30)
-			return resp, nil
+		}()
+		return l.HotToResp(records), nil
+	} else if status == StatusError {
+		records, err := l.GetFromTiDB(timeout, in, int(in.Limit), int(in.Offset), logger)
+		if err != nil {
+			return nil, err
 		}
+		return l.HotToResp(records), nil
 	}
-}
-
-func (l *GetCommentListByHotLogic) BuildCache(key string, records []ListHotRecord, hot bool, status int, logger *slog.Logger) {
-	if hot {
-
-	}
-	if status == StatusNeedRebuild || status == StatusNotFind {
-
-	}
-}
-
-func (l *GetCommentListByHotLogic) BuildLocalCache(key string, resp *commentRpc.CommentListResp, logger *slog.Logger) {
-	value, err := json.Marshal(resp)
+	records, err := l.GetFromTiDB(timeout, in, 1000, 0, logger)
 	if err != nil {
-		logger.Error("marshal json to build comment list by hot local cache:" + err.Error())
-		return
+		return nil, err
 	}
-	l.svcCtx.Cache.Set(key, value, 30)
-	return
+	go l.BuildRedis(key, records)
+	return l.HotGet(l.HotToResp(records), int(in.Limit), int(in.Offset)), nil
 }
 
 func (l *GetCommentListByHotLogic) BuildRedis(key string, records []ListHotRecord) {
@@ -104,29 +99,36 @@ func (l *GetCommentListByHotLogic) BuildRedis(key string, records []ListHotRecor
 		b, err := json.Marshal(records[i])
 		if err != nil {
 			panic(err.Error())
-			return
 		}
 		data[i*2+1] = string(b)
 		data[i*2] = v.hot
 	}
 	data[len(data)-2] = -1
-	data[len(data)-1] = time.Now().Add(time.Second * 60)
-
+	data[len(data)-1] = 5
+	err := l.svcCtx.Executor.Execute(context.Background(), commentservicescript.Build, []string{key, strconv.Itoa(60)}, data).Err()
+	if err != nil {
+		slog.Error("get comment list by hot build redis:" + err.Error())
+	}
 }
 
 func (l *GetCommentListByHotLogic) GetFromRedis(ctx context.Context, key string, limit int, offset int, logger *slog.Logger) ([]ListHotRecord, int) {
 	executor := l.svcCtx.Executor
-	resp, err := executor.Execute(ctx, commentservicescript.GetCommentListByHot, []string{key}, limit, offset).Result()
+	resp, err := executor.Execute(ctx, commentservicescript.GetByHot, []string{key}, limit, offset).Result()
 	if err != nil {
 		logger.Error("execute lua to get hot list from redis:" + err.Error())
 		return nil, StatusError
 	}
-	if resp == nil {
-		logger.Debug("not get comment list by hot from redis")
-		return nil, StatusNotFind
-	}
-	logger.Info("get comment list by hot from redis")
+
 	listInter := resp.([]interface{})
+	status, _ := strconv.ParseInt(listInter[len(listInter)-1].(string), 10, 64)
+	if status == StatusNotFind {
+		logger.Debug("hot comment list not exists from redis")
+		return nil, int(status)
+	} else if status == StatusNeedRebuild {
+		logger.Info("get hot comment list from redis but need to rebuild")
+	} else {
+		logger.Info("get hot comment list from redis")
+	}
 	res := make([]ListHotRecord, len(listInter)-1)
 
 	for i := 0; i < len(listInter)-1; i++ {
@@ -135,18 +137,15 @@ func (l *GetCommentListByHotLogic) GetFromRedis(ctx context.Context, key string,
 			panic(err.Error())
 		}
 	}
-	stamp, _ := strconv.ParseInt(listInter[len(listInter)-1].(string), 10, 64)
-	if time.Now().Unix() > stamp {
-		return res, StatusNeedRebuild
-	}
 
-	return res, StatusFind
+	return res, int(status)
 }
+
 func (l *GetCommentListByHotLogic) GetFromTiDB(ctx context.Context, in *commentRpc.GetCommentListByHotReq, limit int, offset int, logger *slog.Logger) ([]ListHotRecord, error) {
 	db := l.svcCtx.DB.WithContext(ctx)
 	records := make([]database.Comment, 0)
 	err := db.Where("content_id = ? and root_id = ? and status = ?", in.ContentId, 0, database.CommentStatusCommon).
-		Limit(limit).Offset(offset).Order("hot").Find(&records).Error
+		Limit(limit).Offset(offset).Order("hot desc").Find(&records).Error
 	if err != nil {
 		logger.Error("get comment list by hot from tidb:" + err.Error())
 		return nil, err
@@ -194,7 +193,7 @@ func (l *GetCommentListByHotLogic) HotToResp(list []ListHotRecord) *commentRpc.C
 
 func (l *GetCommentListByHotLogic) HotGet(all *commentRpc.CommentListResp, limit int, offset int) *commentRpc.CommentListResp {
 	if len(all.CreatedAt) == 0 || offset >= len(all.CreatedAt) {
-		return nil
+		return &commentRpc.CommentListResp{}
 	}
 	var ma = min(len(all.CreatedAt)-1, limit+offset-1)
 	res := &commentRpc.CommentListResp{

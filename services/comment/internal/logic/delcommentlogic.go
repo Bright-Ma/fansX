@@ -8,7 +8,6 @@ import (
 	"fansX/services/comment/internal/svc"
 	"fansX/services/comment/proto/commentRpc"
 	"github.com/IBM/sarama"
-
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
