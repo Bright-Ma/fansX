@@ -9,7 +9,7 @@ local data=ARGV
 
 local exists=redis.call("EXISTS",key)
 if exists==1 then
-    local ex=redis.call("ZRange",key,0,0)
+    local ex=redis.call("ZRange",key,1,1)
     local last=redis.call("TTL",key)
     if tonumber(ex[1])>=tonumber(last) then
         redis.call("DEL",key)

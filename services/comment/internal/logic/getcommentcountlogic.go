@@ -129,8 +129,10 @@ func (l *GetCommentCountLogic) BuildRedis(key string, count int64, logger *slog.
 }
 
 const (
-	StatusError       = 0
-	StatusFind        = 1
-	StatusNeedRebuild = 2
-	StatusNotFind     = 3
+	StatusError       = 1 << 0
+	StatusFind        = 1 << 1
+	StatusNeedRebuild = 1 << 2
+	StatusNotFind     = 1 << 3
+	StatusIsAll       = 1 << 4
+	StatusNotAll      = 1 << 5
 )

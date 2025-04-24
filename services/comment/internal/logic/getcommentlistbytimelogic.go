@@ -8,7 +8,6 @@ import (
 	"fansX/internal/util"
 	syncx "fansX/pkg/sync"
 	"log/slog"
-	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -33,7 +32,7 @@ func NewGetCommentListByTimeLogic(ctx context.Context, svcCtx *svc.ServiceContex
 	}
 }
 
-type ListTimeRecord struct {
+type ListRecord struct {
 	CommentId   int64  `json:"comment_id"`
 	UserId      int64  `json:"user_id"`
 	ContentId   int64  `json:"content_id"`
@@ -52,6 +51,7 @@ func (l *GetCommentListByTimeLogic) GetCommentListByTime(in *commentRpc.GetComme
 	cache := l.svcCtx.Cache
 
 	key := "CommentListByTime:" + strconv.FormatInt(in.ContentId, 10)
+
 	v, ok := cache.Get(key)
 	if ok {
 		logger.Info("get comment list by time from local cache")
@@ -60,42 +60,95 @@ func (l *GetCommentListByTimeLogic) GetCommentListByTime(in *commentRpc.GetComme
 		if err != nil {
 			panic(err.Error())
 		}
-	}
-
-	records, status := l.GetFromRedis(timeout, key, int(in.Limit), in.TimeStamp, logger)
-	if status == StatusFind {
-		return l.TimeToResp(records), nil
-	} else if status == StatusNeedRebuild {
-		go func() {
-			records, err := l.GetFromTiDB(timeout, in, 1000, 0, logger)
-			if err == nil {
-				l.BuildRedis(key, records)
-			}
-		}()
-		return l.TimeToResp(records), nil
-	} else if status == StatusError {
-		records, err := l.GetFromTiDB(timeout, in, int(in.Limit), in.TimeStamp, logger)
-		if err != nil {
-			return nil, err
+		resp := RespGet(value, int(in.Limit), in.TimeStamp)
+		if len(resp.CommentId) == int(in.Limit) {
+			return resp, nil
 		}
-		return l.TimeToResp(records), nil
+		logger.Info("comment list by time from local cache is not enough")
 	}
-	records, err := l.GetFromTiDB(timeout, in, int(in.Limit), time.Now().Add(time.Hour).Unix(), logger)
+	records, status := l.GetFromRedis(timeout, key, int(in.Limit), in.TimeStamp, logger)
+	if status&StatusError != 0 {
+		return l.HandleError(timeout, in.ContentId, in.Limit, in.TimeStamp, logger)
+	} else if status&StatusNeedRebuild != 0 {
+		return l.HandleRebuild(timeout, records, status, in, logger)
+	} else if status&StatusFind != 0 {
+		return l.HandleFind(timeout, records, status, in, logger)
+	}
+	return l.HandleNotFind(timeout, in, logger)
+}
+
+func (l *GetCommentListByTimeLogic) HandleError(ctx context.Context, contentId int64, limit int64, timestamp int64, logger *slog.Logger) (*commentRpc.CommentListResp, error) {
+	records, err := l.GetFromTiDB(ctx, contentId, int(limit), timestamp, logger)
 	if err != nil {
 		return nil, err
 	}
-	go l.BuildRedis(key, records)
-	return l.TimeGet(l.TimeToResp(records), int(in.Limit), in.TimeStamp), nil
-
+	return RecordsToResp(records), nil
 }
 
-func (l *GetCommentListByTimeLogic) BuildRedis(key string, records []ListTimeRecord) {
-	mutex := l.svcCtx.Sync.NewMutex(key, syncx.WithUtil(time.Second*5), syncx.WithTTL(time.Second))
-	err := mutex.TryLock()
-	if err != nil {
-		return
+func (l *GetCommentListByTimeLogic) HandleRebuild(ctx context.Context, records []ListRecord, status int, in *commentRpc.GetCommentListByTimeReq, logger *slog.Logger) (*commentRpc.CommentListResp, error) {
+	go l.RebuildRedis(in.ContentId, logger)
+	if len(records) == int(in.Limit) {
+		return RecordsToResp(records), nil
 	}
-	data := make([]interface{}, len(records)*2+2)
+	if status&StatusIsAll != 0 {
+		return RecordsToResp(records), nil
+	}
+	logger.Info("comment list by time records in redis is not enough get other from tidb")
+	records, err := l.GetFromTiDB(ctx, in.ContentId, int(in.Limit), in.TimeStamp, logger)
+	if err != nil {
+		return nil, err
+	}
+	return RecordsToResp(records), nil
+}
+
+func (l *GetCommentListByTimeLogic) HandleFind(ctx context.Context, records []ListRecord, status int, in *commentRpc.GetCommentListByTimeReq, logger *slog.Logger) (*commentRpc.CommentListResp, error) {
+	if len(records) == int(in.Limit) {
+		return RecordsToResp(records), nil
+	}
+	if status&StatusIsAll != 0 {
+		return RecordsToResp(records), nil
+	}
+	logger.Info("comment list by time records in redis is not enough get other from tidb")
+	records, err := l.GetFromTiDB(ctx, in.ContentId, int(in.Limit), in.TimeStamp, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return RecordsToResp(records), nil
+}
+
+func (l *GetCommentListByTimeLogic) HandleNotFind(ctx context.Context, in *commentRpc.GetCommentListByTimeReq, logger *slog.Logger) (*commentRpc.CommentListResp, error) {
+	go l.RebuildRedis(in.ContentId, logger)
+	records, err := l.GetFromTiDB(ctx, in.ContentId, int(in.Limit), in.TimeStamp, logger)
+	if err != nil {
+		return nil, err
+	}
+	return RecordsToResp(records), nil
+}
+
+func (l *GetCommentListByTimeLogic) RebuildRedis(contentId int64, logger *slog.Logger) {
+	mutex := l.svcCtx.Sync.NewMutex("CommentListByTime:"+strconv.FormatInt(contentId, 10)+":mutex", syncx.WithTTL(time.Second), syncx.WithUtil(time.Second*5))
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err := mutex.TryLock()
+
+	if err == nil {
+		records, err := l.GetFromTiDB(timeout, contentId, 1001, time.Now().Add(time.Hour).UnixMilli(), logger)
+		if err != nil {
+			return
+		}
+		if len(records) > 1000 {
+			l.BuildRedis("CommentListByTime:"+strconv.FormatInt(contentId, 10), records, "false")
+		} else {
+			l.BuildRedis("CommentListByTime:"+strconv.FormatInt(contentId, 10), records, "true")
+		}
+		_ = mutex.Unlock()
+	}
+	return
+}
+
+func (l *GetCommentListByTimeLogic) BuildRedis(key string, records []ListRecord, all string) {
+	data := make([]interface{}, len(records)*2+4)
 	for i, v := range records {
 		b, err := json.Marshal(records[i])
 		if err != nil {
@@ -104,14 +157,17 @@ func (l *GetCommentListByTimeLogic) BuildRedis(key string, records []ListTimeRec
 		data[i*2+1] = string(b)
 		data[i*2] = v.CreatedAt
 	}
-	err = l.svcCtx.Executor.Execute(context.Background()).Err()
+	data[len(data)-4] = -1
+	data[len(data)-3] = 5
+	data[len(data)-2] = -2
+	data[len(data)-1] = all
+	err := l.svcCtx.Executor.Execute(context.Background(), commentservicescript.Build, []string{key, "60"}, data).Err()
 	if err != nil {
 		slog.Error("build comment list by time redis:" + err.Error())
 	}
-	_ = mutex.Unlock()
 }
 
-func (l *GetCommentListByTimeLogic) GetFromRedis(ctx context.Context, key string, limit int, timestamp int64, logger *slog.Logger) ([]ListTimeRecord, int) {
+func (l *GetCommentListByTimeLogic) GetFromRedis(ctx context.Context, key string, limit int, timestamp int64, logger *slog.Logger) ([]ListRecord, int) {
 	executor := l.svcCtx.Executor
 	resp, err := executor.Execute(ctx, commentservicescript.GetByTime, []string{key}, limit, timestamp).Result()
 	if err != nil {
@@ -121,15 +177,15 @@ func (l *GetCommentListByTimeLogic) GetFromRedis(ctx context.Context, key string
 
 	listInter := resp.([]interface{})
 	status, _ := strconv.ParseInt(listInter[len(listInter)-1].(string), 10, 64)
-	if status == StatusNotFind {
+	if status&StatusNotFind != 0 {
 		logger.Debug("time comment list not exists from redis")
 		return nil, int(status)
-	} else if status == StatusNeedRebuild {
+	} else if status&StatusNeedRebuild != 0 {
 		logger.Info("get time comment list from redis but need to rebuild")
 	} else {
 		logger.Info("get time comment list from redis")
 	}
-	res := make([]ListTimeRecord, len(listInter)-1)
+	res := make([]ListRecord, len(listInter)-1)
 	for i := 0; i < len(listInter)-1; i++ {
 		err = json.Unmarshal([]byte(listInter[i].(string)), &res[i])
 		if err != nil {
@@ -139,17 +195,17 @@ func (l *GetCommentListByTimeLogic) GetFromRedis(ctx context.Context, key string
 	return res, int(status)
 }
 
-func (l *GetCommentListByTimeLogic) GetFromTiDB(ctx context.Context, in *commentRpc.GetCommentListByTimeReq, limit int, timestamp int64, logger *slog.Logger) ([]ListTimeRecord, error) {
+func (l *GetCommentListByTimeLogic) GetFromTiDB(ctx context.Context, contentId int64, limit int, timestamp int64, logger *slog.Logger) ([]ListRecord, error) {
 	db := l.svcCtx.DB.WithContext(ctx)
 	records := make([]database.Comment, 0)
-	err := db.Where("content_id = ? and root_id = ? and status = ? and created_at <= ?", in.ContentId, 0, database.CommentStatusCommon, timestamp).
+	err := db.Where("content_id = ? and root_id = ? and status = ? and created_at <= ?", contentId, 0, database.CommentStatusCommon, timestamp).
 		Limit(limit).Order("created_at desc").Find(&records).Error
 	if err != nil {
 		logger.Error("get comment list by time from tidb:" + err.Error())
 		return nil, err
 	}
 	logger.Info("get comment list by time from tidb")
-	res := make([]ListTimeRecord, len(records))
+	res := make([]ListRecord, len(records))
 	for i, v := range records {
 		res[i].LongTextUri = v.LongTextUri
 		res[i].ShortText = v.ShortText
@@ -164,7 +220,7 @@ func (l *GetCommentListByTimeLogic) GetFromTiDB(ctx context.Context, in *comment
 	return res, nil
 }
 
-func (l *GetCommentListByTimeLogic) TimeToResp(records []ListTimeRecord) *commentRpc.CommentListResp {
+func RecordsToResp(records []ListRecord) *commentRpc.CommentListResp {
 	res := &commentRpc.CommentListResp{
 		CommentId:   make([]int64, len(records)),
 		UserId:      make([]int64, len(records)),
@@ -188,7 +244,7 @@ func (l *GetCommentListByTimeLogic) TimeToResp(records []ListTimeRecord) *commen
 	return res
 }
 
-func (l *GetCommentListByTimeLogic) TimeGet(all *commentRpc.CommentListResp, limit int, timestamp int64) *commentRpc.CommentListResp {
+func RespGet(all *commentRpc.CommentListResp, limit int, timestamp int64) *commentRpc.CommentListResp {
 	index := sort.Search(len(all.CommentId), func(i int) bool {
 		return all.CreatedAt[i] <= timestamp
 	})
