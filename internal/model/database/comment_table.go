@@ -10,7 +10,7 @@ type Comment struct {
 	RootId    int64 `gorm:"not null;index:time,priority:20;index:hot,priority:20"`
 	Status    int   `gorm:"not null;index:time,priority:30;index:hot,priority:30"`
 	CreatedAt int64 `gorm:"not null;index:time,priority:40;autoCreateTime"`
-	Hot       int64 `gorm:"not null;index:hot,priority:40"`
+	Hot       int64 `gorm:"not null;index:hot,priority:40;default:100000"`
 
 	ParentId  int64     `grom:"not null;"`
 	UpdatedAt time.Time `gorm:"not null;autoUpdateTime;"`

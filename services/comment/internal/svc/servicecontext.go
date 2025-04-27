@@ -103,7 +103,6 @@ func (svc *ServiceContext) addHot(key string, db *gorm.DB, cache *hotkey.Core) {
 	}
 	cache.Set(key, b, 15)
 	return
-
 }
 
 func (svc *ServiceContext) addTime(key string, db *gorm.DB, cache *hotkey.Core) {

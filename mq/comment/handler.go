@@ -9,6 +9,8 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"log/slog"
+	"strconv"
 	"time"
 )
 
@@ -93,7 +95,7 @@ func (h *Handler) DelComment(message *mq.DelCommentKafkaMsg) error {
 		tx.Commit()
 		return nil
 	}
-	err = tx.Take(record).Update("status", database.ContentStatusDelete).Error
+	err = tx.Take(&record).Update("status", database.ContentStatusDelete).Error
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -116,5 +118,40 @@ func (h *Handler) DelComment(message *mq.DelCommentKafkaMsg) error {
 		}
 	}
 	tx.Commit()
+	h.DelUpdateRedis(timeout, &record)
 	return nil
+}
+
+type ListRecord struct {
+	CommentId   int64  `json:"comment_id"`
+	UserId      int64  `json:"user_id"`
+	ContentId   int64  `json:"content_id"`
+	RootId      int64  `json:"root_id"`
+	ParentId    int64  `json:"parent_id"`
+	CreatedAt   int64  `json:"created_at"`
+	ShortText   string `json:"short_text"`
+	LongTextUri string `json:"long_text_uri"`
+}
+
+func (h *Handler) DelUpdateRedis(ctx context.Context, record *database.Comment) {
+	key := "CommentListByTime:" + strconv.FormatInt(record.ContentId, 10)
+	member := ListRecord{
+		CommentId:   record.Id,
+		UserId:      record.UserId,
+		ContentId:   record.ContentId,
+		RootId:      record.RootId,
+		ParentId:    record.ParentId,
+		CreatedAt:   record.CreatedAt,
+		ShortText:   record.ShortText,
+		LongTextUri: record.LongTextUri,
+	}
+	m, err := json.Marshal(member)
+	if err != nil {
+		slog.Error("marshal member json:" + err.Error())
+		return
+	}
+	err = h.client.ZRem(ctx, key, string(m)).Err()
+	if err != nil {
+		slog.Error("delete member in redis ZSet:" + err.Error())
+	}
 }

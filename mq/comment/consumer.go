@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
+	"fansX/internal/script/commentconsumerscript"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"log/slog"
+	"strconv"
 	"time"
 )
 
@@ -41,7 +46,8 @@ func (c *Consumer) Consume() {
 		select {
 		case <-tick:
 			c.Update()
-			clear(c.commentList)
+			c.commentList = make([]*database.Comment, 0)
+			c.commentCount = make(map[[2]int64]int64)
 			clear(c.commentCount)
 		case msg := <-c.ch:
 			c.InsertList(msg)
@@ -82,6 +88,45 @@ func (c *Consumer) Update() {
 		db.Model(&model).Where("business = ? and count_id = ?", i[0], i[1]).
 			Update("count", gorm.Expr("count + ?", v))
 	}
+	c.UpdateRedis(c.commentList, c.commentCount)
 
 	return
+}
+
+func (c *Consumer) UpdateRedis(commentList []*database.Comment, commentCount map[[2]int64]int64) {
+	go func() {
+		executor := c.executor
+		ctx := context.Background()
+		for _, v := range commentList {
+			member := ListRecord{
+				CommentId:   v.Id,
+				UserId:      v.UserId,
+				ContentId:   v.ContentId,
+				RootId:      v.RootId,
+				ParentId:    v.ParentId,
+				CreatedAt:   v.CreatedAt,
+				ShortText:   v.ShortText,
+				LongTextUri: v.LongTextUri,
+			}
+			m, err := json.Marshal(member)
+			if err != nil {
+				slog.Error("marshal list record to json to insert comment in redis:" + err.Error())
+				return
+			}
+			key := "CommentListByTime:" + strconv.FormatInt(v.ContentId, 10)
+			executor.Execute(ctx, commentconsumerscript.Insert, []string{key}, string(m), time.Now().UnixMilli())
+			if member.RootId != 0 {
+				key = "ReplyCommentList:" + strconv.FormatInt(v.Id, 10) + ":" + strconv.FormatInt(v.RootId, 10)
+				executor.Execute(ctx, commentconsumerscript.Insert, []string{key}, string(m), time.Now().UnixMilli())
+			}
+		}
+	}()
+	go func() {
+		executor := c.executor
+		ctx := context.Background()
+		for k, v := range commentCount {
+			key := "CommentCount:" + ":" + strconv.FormatInt(k[0], 10) + ":" + strconv.FormatInt(k[1], 10)
+			executor.Execute(ctx, commentconsumerscript.Add, []string{key}, v)
+		}
+	}()
 }
