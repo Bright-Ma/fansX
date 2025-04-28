@@ -3,35 +3,28 @@ package group
 import (
 	"encoding/json"
 	"fansX/pkg/hotkey-go/model"
+	"fansX/pkg/hotkey-go/worker/config"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	"github.com/panjf2000/gnet"
-	"hash/fnv"
-	"log/slog"
 	"strconv"
-	"sync"
 	"time"
 )
 
 func init() {
-	groupMap = cmap.New[*Group]()
+	Map = MapSubject{concurrentMap: cmap.New[Observer]()}
 }
 
-func GetGroupMap() *cmap.ConcurrentMap[string, *Group] {
-	return &groupMap
+func GetGroupMap() *MapSubject {
+	return &Map
 }
 
-func NewGroup() *Group {
-	size := 32
+func NewGroup(cf config.Config) *Group {
 	g := &Group{
-		countMutex:    make([]sync.Mutex, size),
-		bucket:        make([]cmap.ConcurrentMap[string, *count], size),
+		config:        cf,
+		nextId:        0,
+		keys:          cmap.New[*count](),
 		connectionSet: cmap.New[*Conn](),
-		bucketSize:    size,
 	}
-	for i := 0; i < size; i++ {
-		g.bucket[i] = cmap.New[*count]()
-	}
-
 	return g
 }
 
@@ -73,34 +66,15 @@ func (g *Group) Send(m string, key []string) {
 }
 
 func (g *Group) AddKey(keys []string, times []int64) {
-	h := fnv.New64a()
-
-	for i := 0; i < len(keys); i++ {
-		// 计算bucketId
-		_, _ = h.Write([]byte(keys[i]))
-		value := h.Sum64() % uint64(g.bucketSize)
-
-		// 这里先进行无锁的get，只是粗略的判断
-		c, ok := g.bucket[value].Get(keys[i])
-		if !ok {
-			g.countMutex[value].Lock()
-			// 这里使用有锁的get，保证并发安全
-			c, ok = g.bucket[value].Get(keys[i])
-			if !ok {
-				c = newCount(keys[i], int(value), g)
-				g.bucket[value].Set(keys[i], c)
+	for i, v := range keys {
+		c := g.keys.Upsert(v, nil, func(exist bool, in *count, new *count) *count {
+			if exist {
+				return in
+			} else {
+				return newCount(keys[i], 0, g)
 			}
-
-			g.countMutex[value].Unlock()
-
-		}
-		if c == nil {
-			slog.Error("nil c")
-			h.Reset()
-			continue
-		}
+		})
 		c.add(times[i])
-		h.Reset()
 	}
 	return
 }

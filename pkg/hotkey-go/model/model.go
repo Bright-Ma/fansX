@@ -32,11 +32,9 @@ type ServerMessage struct {
 	Keys []string `json:"keys"`
 }
 
-var (
-	Group  = "group"
+const (
 	Ping   = "ping"
 	Pong   = "pong"
-	DelKey = "del_key"
 	AddKey = "add_key"
 )
 

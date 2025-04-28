@@ -16,7 +16,6 @@ func (c *conn) write(msg []byte) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	_, _ = c.conn.Write(append(buf, msg...))
-
 }
 
 func (c *conn) read() ([]byte, error) {
@@ -49,6 +48,8 @@ func (c *conn) process() {
 		return
 	}()
 
+	core := c.core
+
 	for !c.closed.Load() {
 		body, err := c.read()
 		if err != nil {
@@ -67,9 +68,8 @@ func (c *conn) process() {
 			c.last = time.Now().Unix()
 			continue
 		} else if msg.Type == model.AddKey {
-			c.core.addProcess(c.core, msg)
-		} else if msg.Type == model.DelKey {
-			c.core.delProcess(c.core, msg)
+			core.notify(msg.Keys[0])
+			core.Set(msg.Keys[0], []byte{}, 30)
 		} else {
 			slog.Error("unKnow message type")
 		}

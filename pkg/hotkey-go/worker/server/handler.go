@@ -57,12 +57,6 @@ func (h *Handler) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
 
 // handPing 对ping包的处理，重置时间戳，回复pong
 func (h *Handler) handPing(c gnet.Conn) (out []byte, action gnet.Action) {
-	inter := c.Context()
-	if inter == nil {
-		slog.Warn("nil context")
-		return nil, gnet.None
-	}
-
 	ctx, ok := inter.(*context)
 	if !ok {
 		slog.Error("not found context")
@@ -76,12 +70,6 @@ func (h *Handler) handPing(c gnet.Conn) (out []byte, action gnet.Action) {
 
 // handPong 对pong包的处理，重置时间戳，由于服务端不主动发送ping，故此函数一般不会调用
 func (h *Handler) handPong(c gnet.Conn) (out []byte, action gnet.Action) {
-	inter := c.Context()
-	if inter == nil {
-		slog.Warn("nil context")
-		return nil, gnet.None
-	}
-
 	ctx, ok := inter.(*context)
 	if !ok {
 		slog.Error("not found context")
@@ -109,19 +97,6 @@ func (h *Handler) HandGroup(msg *model.ClientMessage, c gnet.Conn) (out []byte, 
 
 // HandAdd 处理go程序发送的key以及访问次数
 func (h *Handler) HandAdd(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
-	inter := c.Context()
-	if inter == nil {
-		slog.Warn("nil context")
-		return nil, gnet.None
-	}
-
-	ctx, ok := inter.(*context)
-
-	if !ok {
-		ctx.conn.Close()
-		return nil, gnet.None
-	}
-
 	keys := make([]string, len(msg.Key))
 	times := make([]int64, len(msg.Key))
 	i := 0
@@ -137,11 +112,6 @@ func (h *Handler) HandAdd(msg *model.ClientMessage, c gnet.Conn) (out []byte, ac
 }
 
 func (h *Handler) HandDel(msg *model.ClientMessage, c gnet.Conn) (out []byte, action gnet.Action) {
-	inter := c.Context()
-	if inter == nil {
-		slog.Warn("nil context")
-		return nil, gnet.None
-	}
 
 	ctx, ok := inter.(*context)
 	if !ok {

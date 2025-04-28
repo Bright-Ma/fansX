@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fansX/pkg/hotkey-go/worker/config"
 	"fansX/pkg/hotkey-go/worker/group"
 	"fmt"
+	"github.com/spf13/viper"
 	etcd "go.etcd.io/etcd/client/v3"
 	"log/slog"
 	"time"
@@ -22,14 +24,28 @@ func RegisterService(etcdAddr []string, Host string, key string) error {
 		return err
 	}
 
-	getResp, err := client.Get(timeout, "group", etcd.WithPrefix())
+	getResp, err := client.Get(timeout, "group/", etcd.WithPrefix())
 	if err != nil {
 		return err
 	}
 
-	for _, v := range getResp.Kvs {
-		g := group.NewGroup()
-		group.GetGroupMap().Set(string(v.Value), g)
+	for _, kv := range getResp.Kvs {
+		v := viper.New()
+		v.SetConfigType("yaml")
+		err = v.AddRemoteProvider("etcd3", etcdAddr[0], string(kv.Key))
+		if err != nil {
+			return err
+		}
+		err = v.ReadRemoteConfig()
+		if err != nil {
+			return err
+		}
+		cf := config.Config{}
+		err = v.Unmarshal(&cf)
+		if err != nil {
+			return err
+		}
+		group.GetGroupMap().Register(group.NewGroup())
 	}
 
 	go watchGroup(client, getResp.Header.Revision)
