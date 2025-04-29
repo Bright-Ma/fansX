@@ -3,45 +3,39 @@ package main
 import (
 	"fansX/pkg/hotkey-go/hotkey"
 	etcd "go.etcd.io/etcd/client/v3"
+	"log/slog"
 	"math/rand"
 	"strconv"
 	"time"
 )
 
+type Observer struct {
+}
+
+func (ob *Observer) Do(key string) {
+	slog.Info("key: " + key + " to hot key")
+}
+
 func main() {
-	key := make([]string, 500000)
+	key := make([]string, 1)
 	for i := 0; i < len(key); i++ {
 		key[i] = "key" + strconv.FormatInt(int64(i), 10)
 	}
-
-	for i := 0; i < 4; i++ {
-		config := hotkey.Config{
-			Model:      hotkey.ModelCache,
-			GroupName:  "test" + strconv.Itoa(i),
-			CacheSize:  1024 * 1024 * 1024,
-			HotKeySize: 1024 * 1024 * 128,
-			EtcdConfig: etcd.Config{
-				Endpoints:   []string{"127.0.0.1:4379"},
-				DialTimeout: time.Second * 3,
-			},
-			DelChan: nil,
-			HotChan: nil,
-		}
-		core, err := hotkey.NewCore(config)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		go func() {
-			for i := 0; i < 1; i++ {
-				go func() {
-					for {
-						core.Get(key[rand.Intn(len(key))])
-					}
-				}()
-			}
-		}()
-
+	client, err := etcd.New(etcd.Config{
+		Endpoints:   []string{"1jian10.cn:4379"},
+		DialTimeout: time.Second * 3,
+	})
+	if err != nil {
+		panic(err.Error())
 	}
-	select {}
+	core, err := hotkey.NewCore("test", client, hotkey.WithObserver(&Observer{}))
+	for {
+		k := key[rand.Intn(len(key))]
+		core.Get(k)
+		if core.IsHotKey(k) {
+			slog.Info("hotkey:", k)
+		}
+		time.Sleep(time.Millisecond * 9)
+	}
+
 }

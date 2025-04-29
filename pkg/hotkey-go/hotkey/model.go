@@ -2,6 +2,7 @@ package hotkey
 
 import (
 	cshash "fansX/pkg/consistenthash"
+	"fansX/pkg/hotkey-go/model"
 	"github.com/coocood/freecache"
 	cmap "github.com/orcaman/concurrent-map/v2"
 	etcd "go.etcd.io/etcd/client/v3"
@@ -17,7 +18,7 @@ type Subject interface {
 }
 
 type Observer interface {
-	Update(key string)
+	Do(key string)
 }
 
 type Option interface {
@@ -25,10 +26,6 @@ type Option interface {
 }
 
 type OptionFunc func(core *Core)
-
-func (op OptionFunc) Update(core *Core) {
-	op(core)
-}
 
 type conn struct {
 	mutex  sync.Mutex
@@ -57,4 +54,17 @@ type Core struct {
 type kv struct {
 	key   string
 	times int
+}
+
+type MsgStrategy interface {
+	Handle(msg *model.ServerMessage, conn *conn)
+}
+
+type MsgPingStrategy struct {
+}
+
+type MsgPongStrategy struct {
+}
+
+type MsgAddStrategy struct {
 }

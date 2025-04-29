@@ -4,51 +4,22 @@ import (
 	"encoding/json"
 	"fansX/pkg/hotkey-go/model"
 	"fansX/pkg/hotkey-go/worker/config"
+	"fansX/pkg/hotkey-go/worker/connection"
+	"fansX/pkg/hotkey-go/worker/window"
 	cmap "github.com/orcaman/concurrent-map/v2"
-	"github.com/panjf2000/gnet"
-	"strconv"
-	"time"
 )
 
-func init() {
-	Map = MapSubject{concurrentMap: cmap.New[Observer]()}
-}
-
-func GetGroupMap() *MapSubject {
-	return &Map
-}
-
-func NewGroup(cf config.Config) *Group {
-	g := &Group{
-		config:        cf,
-		nextId:        0,
-		keys:          cmap.New[*count](),
-		connectionSet: cmap.New[*Conn](),
+func newGroup(cf config.Config) *group {
+	g := &group{
+		config:        &cf,
+		keys:          cmap.New[*window.Window](),
+		connectionSet: cmap.NewStringer[*connection.Conn, bool](),
 	}
 	return g
 }
 
-func (g *Group) AddConn(conn gnet.Conn) *Conn {
-	g.idMutex.Lock()
-	// 获取唯一id
-	id := g.nextId
-	g.nextId++
-	g.idMutex.Unlock()
-
-	c := &Conn{
-		Last:  time.Now().Unix(),
-		Id:    id,
-		Conn:  conn,
-		Group: g,
-	}
-	// 在连接集合中添加conn
-	g.connectionSet.Set(strconv.FormatInt(id, 10), c)
-
-	return c
-}
-
 // Send 广播，对该group中的所有连接发送消息
-func (g *Group) Send(m string, key []string) {
+func (g *group) send(m string, key []string) {
 	msg := &model.ServerMessage{
 		Type: m,
 		Keys: key,
@@ -60,33 +31,25 @@ func (g *Group) Send(m string, key []string) {
 	}
 
 	mp := g.connectionSet.Items()
-	for _, v := range mp {
-		_ = v.Conn.AsyncWrite(s)
+	for conn := range mp {
+		conn.Send(s)
 	}
 }
 
-func (g *Group) AddKey(keys []string, times []int64) {
+func (g *group) addKey(keys []string, times []int64) {
 	for i, v := range keys {
-		c := g.keys.Upsert(v, nil, func(exist bool, in *count, new *count) *count {
+		w := g.keys.Upsert(v, nil, func(exist bool, in *window.Window, new *window.Window) *window.Window {
 			if exist {
 				return in
 			} else {
-				return newCount(keys[i], 0, g)
+				return window.NewWindow(&g.config.Window)
 			}
 		})
-		c.add(times[i])
-	}
-	return
-}
-
-func (g *Group) Tick() {
-	mp := g.connectionSet.Items()
-	t := time.Now().Unix()
-	for _, v := range mp {
-		if t-v.Last >= 30 {
-			v.Close()
+		ok := w.Add(times[i])
+		if ok {
+			w.ResetSend()
+			g.send(model.AddKey, []string{v})
 		}
 	}
-
 	return
 }

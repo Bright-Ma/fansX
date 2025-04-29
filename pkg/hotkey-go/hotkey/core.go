@@ -140,6 +140,7 @@ func (c *Core) connect(addr string) {
 	con, err := net.Dial("tcp", addr)
 	if err != nil {
 		slog.Error("connect:" + err.Error())
+		return
 	}
 
 	connection := &conn{closed: &atomic.Bool{}, conn: con, addr: addr, core: c, last: time.Now().Unix()}
@@ -169,7 +170,7 @@ func (c *Core) register(ob Observer) {
 
 func (c *Core) notify(key string) {
 	for _, ob := range c.observerList {
-		ob.Update(key)
+		ob.Do(key)
 	}
 }
 
@@ -214,12 +215,12 @@ func (c *Core) IsHotKey(key string) bool {
 }
 
 func (c *Core) tick() {
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 	t := time.Now().Unix()
 	mp := c.conn.Items()
 
 	for _, v := range mp {
-		if t-v.last >= 30 {
+		if t-v.last >= 60 {
 			c.closeConnect(v.addr)
 			continue
 		}

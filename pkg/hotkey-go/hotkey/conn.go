@@ -48,30 +48,23 @@ func (c *conn) process() {
 		return
 	}()
 
-	core := c.core
-
 	for !c.closed.Load() {
 		body, err := c.read()
 		if err != nil {
 			continue
 		}
+
 		msg := &model.ServerMessage{}
 		err = json.Unmarshal(body, msg)
 		if err != nil {
 			continue
 		}
 
-		if msg.Type == model.Ping {
-			c.last = time.Now().Unix()
-			c.write(model.ClientPongMessage)
-		} else if msg.Type == model.Pong {
-			c.last = time.Now().Unix()
+		s := GetMsgStrategy(msg.Type)
+		if s == nil {
+			slog.Error("unknow strategy:", msg.Type)
 			continue
-		} else if msg.Type == model.AddKey {
-			core.notify(msg.Keys[0])
-			core.Set(msg.Keys[0], []byte{}, 30)
-		} else {
-			slog.Error("unKnow message type")
 		}
+		s.Handle(msg, c)
 	}
 }

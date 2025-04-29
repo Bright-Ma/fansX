@@ -6,8 +6,10 @@ import (
 	"fansX/pkg/hotkey-go/worker/group"
 	"fmt"
 	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 	etcd "go.etcd.io/etcd/client/v3"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -30,25 +32,15 @@ func RegisterService(etcdAddr []string, Host string, key string) error {
 	}
 
 	for _, kv := range getResp.Kvs {
-		v := viper.New()
-		v.SetConfigType("yaml")
-		err = v.AddRemoteProvider("etcd3", etcdAddr[0], string(kv.Key))
+		cf, err := ReadConfig(etcdAddr[0], string(kv.Key))
 		if err != nil {
 			return err
+
 		}
-		err = v.ReadRemoteConfig()
-		if err != nil {
-			return err
-		}
-		cf := config.Config{}
-		err = v.Unmarshal(&cf)
-		if err != nil {
-			return err
-		}
-		group.GetGroupMap().Register(group.NewGroup())
+		group.GetGroupMap().Update(cf)
 	}
 
-	go watchGroup(client, getResp.Header.Revision)
+	go watchGroup(client, getResp.Header.Revision, etcdAddr[0])
 
 	leaseResp, err := client.Grant(context.Background(), 10)
 	if err != nil {
@@ -75,8 +67,8 @@ func RegisterService(etcdAddr []string, Host string, key string) error {
 }
 
 // watchGroup 监听group的变化，未来考虑加入其他配置文件
-func watchGroup(client *etcd.Client, rev int64) {
-	watch := client.Watch(context.Background(), "group/", etcd.WithRev(rev))
+func watchGroup(client *etcd.Client, rev int64, addr string) {
+	watch := client.Watch(context.Background(), "group/", etcd.WithRev(rev), etcd.WithPrefix())
 	defer func() {
 		if err := recover(); err != nil {
 			slog.Error("watchGroup panic:" + fmt.Sprint(err))
@@ -86,10 +78,16 @@ func watchGroup(client *etcd.Client, rev int64) {
 	for w := range watch {
 		for _, ev := range w.Events {
 			if ev.Type == etcd.EventTypeDelete {
-				continue
+				str := string(ev.Kv.Key)
+				name, _ := strings.CutPrefix("group/", str)
+				group.GetGroupMap().Delete(name)
 			} else if ev.Type == etcd.EventTypePut {
-				g := group.NewGroup()
-				group.GetGroupMap().Set(string(ev.Kv.Value), g)
+				cf, err := ReadConfig(addr, string(ev.Kv.Key))
+				if err != nil {
+					slog.Error("read config:" + err.Error())
+					continue
+				}
+				group.GetGroupMap().Update(cf)
 			} else {
 				slog.Error("unKnow etcd.eventType")
 			}
@@ -98,4 +96,23 @@ func watchGroup(client *etcd.Client, rev int64) {
 	}
 	panic("watch group time out")
 
+}
+
+func ReadConfig(addr string, path string) (config.Config, error) {
+	v := viper.New()
+	v.SetConfigType("yaml")
+	err := v.AddRemoteProvider("etcd3", addr, path)
+	if err != nil {
+		return config.Config{}, err
+	}
+	err = v.ReadRemoteConfig()
+	if err != nil {
+		return config.Config{}, err
+	}
+	cf := config.Config{}
+	err = v.Unmarshal(&cf)
+	if err != nil {
+		return config.Config{}, err
+	}
+	return cf, nil
 }

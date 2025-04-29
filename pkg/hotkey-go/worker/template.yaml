@@ -1,0 +1,7 @@
+Group:
+  Name: test
+Window:
+  Size: 20
+  TimeWait: 60
+  Threshold: 10
+  Timeout: 120

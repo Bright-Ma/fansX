@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+func (op OptionFunc) Update(core *Core) {
+	op(core)
+}
+
 // WithCacheSize 设置本地缓存的大小(byte),默认值为4g
 func WithCacheSize(size int) Option {
 	return OptionFunc(func(core *Core) {
@@ -45,10 +49,10 @@ func WithSendInterval(interval time.Duration) Option {
 }
 
 // WithObserver 将观察者加入观察者列表，在将热key加入缓存前通知观察者
-func WithObserver(subjects ...Subject) Option {
+func WithObserver(observers ...Observer) Option {
 	return OptionFunc(func(core *Core) {
-		for _, sub := range subjects {
-			core.register(sub)
+		for _, ob := range observers {
+			core.register(ob)
 		}
 	})
 }
