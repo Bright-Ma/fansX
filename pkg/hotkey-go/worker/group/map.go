@@ -39,9 +39,9 @@ func (m *Map) AddKey(groupName string, conn *connection.Conn, keys []string, tim
 
 func (m *Map) tick() {
 	ticker := time.NewTicker(time.Second * 5)
-	for _ = range ticker.C {
+	for range ticker.C {
 		for _, group := range m.groups.Items() {
-			for conn, _ := range group.connectionSet.Items() {
+			for conn := range group.connectionSet.Items() {
 				conn.Ping()
 			}
 		}
@@ -50,9 +50,9 @@ func (m *Map) tick() {
 
 func (m *Map) checkConnection() {
 	ticker := time.NewTicker(time.Second * 5)
-	for _ = range ticker.C {
+	for range ticker.C {
 		for _, group := range m.groups.Items() {
-			for conn, _ := range group.connectionSet.Items() {
+			for conn := range group.connectionSet.Items() {
 				if conn.IsTimeout() {
 					conn.Close()
 					group.connectionSet.Remove(conn)
