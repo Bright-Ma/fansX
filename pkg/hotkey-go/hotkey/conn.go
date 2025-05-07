@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// 发送消息，tcp报文头为4字节的长度字段，使用大端序发送(长度字段)
 func (c *conn) write(msg []byte) {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(len(msg)))
@@ -18,8 +19,10 @@ func (c *conn) write(msg []byte) {
 	_, _ = c.conn.Write(append(buf, msg...))
 }
 
+// 读消息，每次读一个包
 func (c *conn) read() ([]byte, error) {
 	head := make([]byte, 4)
+	//获取长度头
 	_, err := io.ReadFull(c.conn, head)
 	if err != nil {
 		return nil, err
@@ -37,6 +40,7 @@ func (c *conn) read() ([]byte, error) {
 }
 
 func (c *conn) process() {
+	// Ping
 	go func() {
 		ticker := time.NewTicker(time.Second * 10)
 		for !c.closed.Load() {

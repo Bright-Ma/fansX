@@ -28,4 +28,8 @@ func NewCore(config Config) (Core, error) {
 	}
 }
 
-var ErrNoModel = errors.New("please select model")
+func init() {
+
+}
+
+var ErrNoModel = errors.New("no such model")

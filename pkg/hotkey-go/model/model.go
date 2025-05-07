@@ -2,6 +2,7 @@ package model
 
 import "encoding/json"
 
+// 预编码部分消息
 func init() {
 	clientPing := ClientMessage{
 		Type: Ping,
@@ -21,12 +22,14 @@ func init() {
 	ServerPongMessage, _ = json.Marshal(serverPong)
 }
 
+// ClientMessage hotkey消息体
 type ClientMessage struct {
 	Type      string         `json:"type"`
 	GroupName string         `json:"group_name"`
 	Key       map[string]int `json:"key"`
 }
 
+// ServerMessage worker消息体
 type ServerMessage struct {
 	Type string   `json:"type"`
 	Keys []string `json:"keys"`

@@ -15,6 +15,7 @@ func init() {
 	go groupMap.checkConnection()
 }
 
+// GetGroupMap 饿汉单例模式
 func GetGroupMap() *Map {
 	return groupMap
 }
@@ -37,6 +38,7 @@ func (m *Map) AddKey(groupName string, conn *connection.Conn, keys []string, tim
 	return nil
 }
 
+// 心跳维持
 func (m *Map) tick() {
 	ticker := time.NewTicker(time.Second * 5)
 	for range ticker.C {
@@ -48,6 +50,7 @@ func (m *Map) tick() {
 	}
 }
 
+// 连接检测
 func (m *Map) checkConnection() {
 	ticker := time.NewTicker(time.Second * 5)
 	for range ticker.C {
@@ -62,6 +65,7 @@ func (m *Map) checkConnection() {
 	}
 }
 
+// 时间窗口检测
 func (m *Map) checkWindow() {
 	ticker := time.NewTicker(time.Second * 5)
 	for range ticker.C {

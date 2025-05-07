@@ -91,6 +91,7 @@ func (c *Core) watch() error {
 	return nil
 }
 
+// 发送key的访问信息
 func (c *Core) sendKey() {
 	ticker := time.NewTicker(c.interval)
 	list := make(map[string]int)
@@ -101,6 +102,7 @@ func (c *Core) sendKey() {
 			c.push(list)
 			clear(list)
 		case value := <-c.send:
+			// 内存聚合
 			list[value.key] += value.times
 		}
 	}
@@ -136,6 +138,7 @@ func (c *Core) push(list map[string]int) {
 	}
 }
 
+// 连接，添加连接进连接集合，从一致性hash环中移除对端
 func (c *Core) connect(addr string) {
 	con, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -152,6 +155,7 @@ func (c *Core) connect(addr string) {
 	go connection.process()
 }
 
+// 关闭连接，在一致性hash环中和连接集合中移除对端
 func (c *Core) closeConnect(addr string) {
 	connection, ok := c.conn.Get(addr)
 	if !ok {

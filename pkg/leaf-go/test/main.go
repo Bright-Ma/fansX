@@ -14,6 +14,14 @@ var wg sync.WaitGroup
 var model = 1
 
 func main() {
+	creator, err := leaf.NewCore(leaf.Config{
+		Model: leaf.Snowflake,
+		SnowflakeConfig: &leaf.SnowflakeConfig{
+			CreatorName: "",
+			Addr:        "",
+			EtcdAddr:    []string{},
+		},
+	})
 
 	startTime := time.Now()
 

@@ -12,6 +12,7 @@ type Handler struct {
 	pool *goroutine.Pool
 }
 
+// MessageStrategy 策略模式
 type MessageStrategy interface {
 	Handle(msg *model.ClientMessage, conn *connection.Conn)
 }

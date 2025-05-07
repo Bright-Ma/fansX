@@ -13,7 +13,7 @@ func (h *Handler) OnOpened(c gnet.Conn) (out []byte, action gnet.Action) {
 	return
 }
 
-// React tcp报文的处理
+// React tcp报文处理
 func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Action) {
 	msg := &model.ClientMessage{}
 	err := json.Unmarshal(packet, msg)
@@ -27,6 +27,7 @@ func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Act
 		return nil, gnet.Close
 	}
 	ctx := c.Context()
+	// 协程池处理
 	_ = h.pool.Submit(func() {
 		s.Handle(msg, ctx.(*connection.Conn))
 	})
@@ -34,7 +35,7 @@ func (h *Handler) React(packet []byte, c gnet.Conn) (out []byte, action gnet.Act
 	return nil, gnet.None
 }
 
-func (h *Handler) OnClosed(c gnet.Conn, err error) (action gnet.Action) {
+func (h *Handler) OnClosed(_ gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		slog.Error(err.Error())
 	} else {

@@ -6,7 +6,9 @@ import (
 )
 
 type Conn struct {
-	id   string
+	// 连接id
+	id string
+	// 上次接收报文时间
 	last int64
 	conn gnet.Conn
 }

@@ -8,8 +8,10 @@ import (
 )
 
 type group struct {
-	config        *config.Config
-	keys          cmap.ConcurrentMap[string, *window.Window]
+	config *config.Config
+	// key集合
+	keys cmap.ConcurrentMap[string, *window.Window]
+	// 连接集合
 	connectionSet cmap.ConcurrentMap[*connection.Conn, bool]
 }
 

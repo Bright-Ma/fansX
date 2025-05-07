@@ -27,6 +27,7 @@ func (c *Conn) Send(msg []byte) {
 	_ = c.conn.AsyncWrite(msg)
 }
 
+// IsTimeout 该连接是否超时
 func (c *Conn) IsTimeout() bool {
 	if time.Now().Unix()-c.last > 60 {
 		return true
@@ -39,6 +40,7 @@ func (c *Conn) String() string {
 }
 
 func NewConn(conn gnet.Conn) *Conn {
+	// 获取唯一连接id
 	idMutex.Lock()
 	next := nextId
 	nextId++

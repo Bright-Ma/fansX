@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// RegisterService 将worker节点注册到etcd，同时监听配置的变化(目前只提供group的变化)，host为本机ip+监听的端口号
+// RegisterService 将worker节点注册到etcd，同时监听配置的变化，host为本机ip+监听的端口号
 func RegisterService(etcdAddr []string, Host string, key string) error {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
@@ -66,7 +66,7 @@ func RegisterService(etcdAddr []string, Host string, key string) error {
 	return nil
 }
 
-// watchGroup 监听group的变化，未来考虑加入其他配置文件
+// watchGroup 监听配置文件的变化
 func watchGroup(client *etcd.Client, rev int64, addr string) {
 	watch := client.Watch(context.Background(), "group/", etcd.WithRev(rev), etcd.WithPrefix())
 	defer func() {
@@ -77,10 +77,12 @@ func watchGroup(client *etcd.Client, rev int64, addr string) {
 	}()
 	for w := range watch {
 		for _, ev := range w.Events {
+			// 配置删除
 			if ev.Type == etcd.EventTypeDelete {
 				str := string(ev.Kv.Key)
 				name, _ := strings.CutPrefix("group/", str)
 				group.GetGroupMap().Delete(name)
+				// 配置更新或新增
 			} else if ev.Type == etcd.EventTypePut {
 				cf, err := ReadConfig(addr, string(ev.Kv.Key))
 				if err != nil {
@@ -98,6 +100,7 @@ func watchGroup(client *etcd.Client, rev int64, addr string) {
 
 }
 
+// ReadConfig 在etcd中读取配置
 func ReadConfig(addr string, path string) (config.Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
