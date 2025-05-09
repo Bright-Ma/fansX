@@ -1,6 +1,19 @@
 package mq
 
-type CommentKafkaMsg struct {
+type CommentCountCdcJson struct {
+	CanalJson
+	Data []CommentCountCdc `json:"data"`
+	Old  []CommentCountCdc `json:"old"`
+}
+
+type CommentCountCdc struct {
+	Id       string `json:"id"`
+	Business string `json:"business"`
+	CountId  string `json:"count_id"`
+	Count    string `json:"count"`
+}
+
+type CommentKafkaJson struct {
 	Id          int64  `json:"id"`
 	UserId      int64  `json:"user_id"`
 	ContentId   int64  `json:"content_id"`
@@ -10,7 +23,7 @@ type CommentKafkaMsg struct {
 	LongTextUri string `json:"long_text_uri"`
 }
 
-type DelCommentKafkaMsg struct {
+type DelCommentKafkaJson struct {
 	UserId    int64 `json:"user_id"`
 	CommentId int64 `json:"comment_id"`
 }

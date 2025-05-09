@@ -1,16 +1,16 @@
 package mq
 
-type FollowingCanalJson struct {
+type FollowingCdcJson struct {
 	CanalJson
-	Data []Following `json:"data"`
+	Data []FollowingCdc `json:"data"`
 }
 
-type FollowerCanalJson struct {
+type FollowerCdcJson struct {
 	CanalJson
-	Data []Follower `json:"data"`
+	Data []FollowerCdc `json:"data"`
 }
 
-type Following struct {
+type FollowingCdc struct {
 	Id          string `json:"id"`
 	FollowerId  string `json:"follower_id"`
 	Type        string `json:"type"`
@@ -19,7 +19,7 @@ type Following struct {
 	CreatedAt   string `json:"created_at"`
 }
 
-type Follower struct {
+type FollowerCdc struct {
 	Id          string `json:"id"`
 	FollowingId string `json:"following_id"`
 	Type        string `json:"type"`

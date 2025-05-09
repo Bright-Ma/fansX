@@ -4,13 +4,12 @@ option go_package = "./UserRpc";
 
 service UserService{
   rpc Register(RegisterReq)returns (RegisterResp);
-  rpc LoginWithPhone(LoginWithPhoneReq)returns(LoginWithPhoneResp);
+  rpc Login(LoginReq)returns(LoginResp);
   rpc Logout(LogoutReq)returns(LogoutResp);
 }
 
 message RegisterReq{
   string phone =1;
-  string code=2;
   string userName =3;
   string passWord =4;
 }
@@ -19,18 +18,19 @@ message RegisterResp{
 }
 
 message LoginReq{
-
+  string phone=1;
+  string passWord=2;
 }
 
 message LoginResp{
-
+  string sessionId=1;
+  string token=2;
 }
 
 message LogoutReq{
-
+  string sessionId=1;
 }
 
 message LogoutResp{
-
 }
 

@@ -23,6 +23,11 @@ message RefreshSessionReq{
   string sessionId = 1;
 }
 
+message RefreshSessionResp{
+  bool ok = 1;
+  string token = 2;
+}
+
 message DeleteSessionReq{
   string sessionId=1;
 }
@@ -30,10 +35,6 @@ message DeleteSessionReq{
 message DeleteSessionResp{
 }
 
-message RefreshSessionResp{
-  bool ok = 1;
-  string token = 2;
-}
 
 message CreateVoucherReq{
   int64 userId =1;

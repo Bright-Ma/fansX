@@ -3,7 +3,9 @@ package logic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"time"
 
 	"auth/internal/svc"
@@ -39,7 +41,9 @@ func (l *AuthenticationLogic) Authentication(in *AuthRpc.AuthenticationReq) (*Au
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
 	res, err := l.svcCtx.RDB.Get(timeout, in.SessionId).Result()
 	cancel()
-	if err != nil {
+	if errors.Is(err, redis.Nil) {
+		return &AuthRpc.AuthenticationResp{Pass: false}, nil
+	} else if err != nil {
 		return nil, err
 	}
 

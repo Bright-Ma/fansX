@@ -33,7 +33,7 @@ go run worker.go #执行go run一键启动
 ### 使用hotkey
 
 在etcd中添加配置，key为group/{groupName}，value为yaml格式的配置，效果如图
-![配置示例](image/etcd配置示例.png)  
+![配置示例](../../img/hotkey-etcd配置.png)  
 连接etcd，传入etcd的client以及groupName，groupName需要与在etcd中添加的groupName相同  
 ```go
 	client, err := etcd.New(etcd.Config{
@@ -137,7 +137,7 @@ Window:
 ## 概览
 
 ### 架构图
-![架构](./image/架构.png)
+![架构](../../img/hotkey-架构.png)
 
 ### 注册中心
 首先，worker需要具有水平扩展的能力，而我们的hotkey需要感知到worker节点的变更，很明显，这里需要引入注册中心来实现  
@@ -275,7 +275,7 @@ func MsgRegister(msgType string, strategy MsgStrategy) {
 ### 热点统计-滑动窗口
 这是热点统计的核心，对于每个key，我们维持最近一段时间的访问次数，当达到一定次数，即视为热key  
 滑动窗口如图所示  每方块为一个窗口，数字代表该窗口内访问次数
-![滑动窗口](./image/滑动窗口.png)
+![滑动窗口](../../img/hotkey-滑动窗口.png)
 定义如下
 ```go
 type Window struct {

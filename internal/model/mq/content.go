@@ -1,11 +1,11 @@
 package mq
 
-type MetaContentJson struct {
+type MetaContentCdcJson struct {
 	CanalJson
 	Data []MetaContent `json:"data"`
 }
 
-type PublicContentJson struct {
+type PublicContentCdcJson struct {
 	CanalJson
 	Data []PublicContent `json:"data"`
 }
