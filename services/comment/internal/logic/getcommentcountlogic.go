@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fansX/internal/model/database"
-	"fansX/internal/script/commentservicescript"
 	"fansX/internal/util"
 	syncx "fansX/pkg/sync"
+	"fansX/services/comment/internal/script"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
@@ -81,7 +81,7 @@ func (l *GetCommentCountLogic) GetCommentCount(in *commentRpc.GetCommentCountReq
 
 func (l *GetCommentCountLogic) GetFromRedis(ctx context.Context, key string, logger *slog.Logger) (int64, int) {
 	executor := l.svcCtx.Executor
-	resp, err := executor.Execute(ctx, commentservicescript.GetCountScript, []string{key}).Result()
+	resp, err := executor.Execute(ctx, script.GetCountScript, []string{key}).Result()
 	if err != nil {
 		logger.Error("get comment count from redis:" + err.Error())
 		return 0, StatusError

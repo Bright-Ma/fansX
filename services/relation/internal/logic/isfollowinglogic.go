@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 	"errors"
-	luaZset2 "fansX/internal/middleware/lua/script/zset"
 	"fansX/internal/model/database"
 	"fansX/internal/util"
+	"fansX/services/relation/internal/script"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -41,16 +41,16 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 	defer cancel()
 
 	key := "Following:" + strconv.FormatInt(in.UserId, 10)
-	res, err := executor.Execute(timeout, luaZset2.GetGetField(), []string{key}, strconv.FormatInt(in.FollowId, 10)).Result()
+	res, err := executor.Execute(timeout, script.GetFiled, []string{key}, strconv.FormatInt(in.FollowId, 10)).Result()
 	if err != nil {
 		logger.Error("exec script GetField:" + err.Error())
 		return nil, err
 	}
 
-	if res.(string) == luaZset2.FieldNotExists {
+	if res.(string) == script.GetFiledFiledNE {
 		logger.Debug("field not exists")
 		return &relationRpc.IsFollowingResp{Is: false}, nil
-	} else if res.(string) != luaZset2.TableNotExists {
+	} else if res.(string) != script.GetFiledTableNE {
 		logger.Debug("field exists")
 		return &relationRpc.IsFollowingResp{Is: true}, nil
 	}
@@ -83,7 +83,7 @@ func (l *IsFollowingLogic) IsFollowing(in *relationRpc.IsFollowingReq) (*relatio
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
 
-			err := executor.Execute(timeout, luaZset2.GetCreate(), []string{key, "false"}, kvs).Err()
+			err := executor.Execute(timeout, script.BuildZSet, []string{key, "false", "60"}, kvs...).Err()
 			if err != nil {
 				logger.Warn("execute zset_create:" + err.Error())
 			}

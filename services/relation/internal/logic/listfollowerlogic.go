@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 	"errors"
-	luaZset2 "fansX/internal/middleware/lua/script/zset"
 	"fansX/internal/model/database"
 	"fansX/internal/util"
+	"fansX/services/relation/internal/script"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"strconv"
@@ -45,7 +45,7 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 	defer cancel()
 
 	key := "Follower:" + strconv.FormatInt(in.UserId, 10)
-	fields, err := executor.Execute(timeout, luaZset2.GetRevRange(), []string{key}, "false", in.Offset, in.Limit+in.Offset-1).Result()
+	fields, err := executor.Execute(timeout, script.RevRangeZSet, []string{key}, "false", in.Offset, in.Limit+in.Offset-1).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logger.Error("search follower from redis:" + err.Error())
 		return nil, err
@@ -86,7 +86,7 @@ func (l *ListFollowerLogic) ListFollower(in *relationRpc.ListFollowerReq) (*rela
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
 
-			err := executor.Execute(timeout, luaZset2.GetCreate(), []string{key, "false", "300"}, data...).Err()
+			err := executor.Execute(timeout, script.BuildZSet, []string{key, "false", "300"}, data...).Err()
 			if err != nil {
 				logger.Warn("execute zset_create:" + err.Error())
 			}

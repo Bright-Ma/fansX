@@ -1,4 +1,4 @@
-package commentconsumerscript
+package script
 
 import "fansX/internal/middleware/lua"
 

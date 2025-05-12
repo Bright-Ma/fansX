@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
-	"fansX/internal/script/commentconsumerscript"
+	"fansX/mq/comment/script"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
@@ -114,10 +114,10 @@ func (c *Consumer) UpdateRedis(commentList []*database.Comment, commentCount map
 				return
 			}
 			key := "CommentListByTime:" + strconv.FormatInt(v.ContentId, 10)
-			executor.Execute(ctx, commentconsumerscript.Insert, []string{key}, string(m), time.Now().UnixMilli())
+			executor.Execute(ctx, script.Insert, []string{key}, string(m), time.Now().UnixMilli())
 			if member.RootId != 0 {
 				key = "ReplyCommentList:" + strconv.FormatInt(v.Id, 10) + ":" + strconv.FormatInt(v.RootId, 10)
-				executor.Execute(ctx, commentconsumerscript.Insert, []string{key}, string(m), time.Now().UnixMilli())
+				executor.Execute(ctx, script.Insert, []string{key}, string(m), time.Now().UnixMilli())
 			}
 		}
 	}()
@@ -126,7 +126,7 @@ func (c *Consumer) UpdateRedis(commentList []*database.Comment, commentCount map
 		ctx := context.Background()
 		for k, v := range commentCount {
 			key := "CommentCount:" + ":" + strconv.FormatInt(k[0], 10) + ":" + strconv.FormatInt(k[1], 10)
-			executor.Execute(ctx, commentconsumerscript.Add, []string{key}, v)
+			executor.Execute(ctx, script.Add, []string{key}, v)
 		}
 	}()
 }

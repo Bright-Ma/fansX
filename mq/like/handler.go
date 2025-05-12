@@ -7,7 +7,7 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	"fansX/internal/script/likeconsumerscript"
+	"fansX/mq/like/script"
 	leaf "fansX/pkg/leaf-go"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
@@ -152,7 +152,7 @@ func (h *Handler) UpdateRedis(message *mq.Like) {
 	if err != nil {
 		slog.Error("delete user like list:" + err.Error())
 	}
-	err = h.executor.Execute(timeout, likeconsumerscript.InsertScript, []string{
+	err = h.executor.Execute(timeout, script.InsertScript, []string{
 		"LikeList:" + strconv.Itoa(int(message.Business)) + ":" + strconv.FormatInt(message.LikeId, 10),
 		"false",
 	}, message.TimeStamp, message.UserId).Err()

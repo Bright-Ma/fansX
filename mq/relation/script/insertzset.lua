@@ -1,5 +1,8 @@
+redis =require"redis"
+local KEYS={}
+local ARGV={}
+--上述三行为了防止报错，在使用时将其删除
 local key=KEYS[1]
-
 local data=ARGV
 
 local exists=redis.call("EXISTS",key)
@@ -14,4 +17,3 @@ for i=1,#data,2
 end
 
 return true
-

@@ -1,3 +1,7 @@
+redis =require"redis"
+local KEYS={}
+local ARGV={}
+--上述三行为了防止报错，在使用时将其删除
 local zset_key = KEYS[1]
 local target_prefix = ARGV[1] .. ';'
 local cursor = "0"
@@ -15,4 +19,3 @@ repeat
 until cursor == "0"
 
 return total_deleted
-

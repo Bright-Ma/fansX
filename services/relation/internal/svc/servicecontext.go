@@ -1,18 +1,19 @@
 package svc
 
 import (
+	"context"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
 	leaf "fansX/pkg/leaf-go"
 	"fansX/services/relation/internal/config"
+	"fansX/services/relation/internal/script"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
-	"time"
 )
 
 type ServiceContext struct {
@@ -37,13 +38,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Addr: "127.0.0.1:6379",
 		DB:   1,
 	})
-
-	creator, err := leaf.Init(&leaf.Config{
+	creator, err := leaf.NewCore(leaf.Config{
 		Model: leaf.Snowflake,
 		SnowflakeConfig: &leaf.SnowflakeConfig{
 			CreatorName: "relation.rpc",
 			Addr:        "1jian10.cn:23010",
-			EtcdAddr:    []string{"127.0.0.1:4379"},
+			EtcdAddr:    []string{"1jian10.cn:4379"},
 		},
 	})
 	if err != nil {
@@ -56,33 +56,24 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	e := lua.NewExecutor(r)
-	if err := e.LoadAll(); err != nil {
-		panic(err.Error())
-	}
-
-	del := make(chan string, 1024*64)
-
-	core, err := hotkey.NewCore(hotkey.Config{
-		Model:      hotkey.ModelCache,
-		GroupName:  "relation.rpc",
-		CacheSize:  1024 * 1024 * 512,
-		HotKeySize: 1024 * 1024 * 64,
-		EtcdConfig: etcd.Config{
-			Endpoints:   []string{"127.0.0.1:4379"},
-			DialTimeout: time.Second * 3,
-		},
-		DelChan: del,
-		HotChan: nil,
+	_, err = e.Load(context.Background(), []*lua.Script{
+		script.BuildZSet,
+		script.RevRangeZSet,
+		script.GetFiled,
 	})
 	if err != nil {
 		panic(err.Error())
 	}
+	eClient, err := etcd.New(etcd.Config{Endpoints: []string{"1jian10.cn:4379"}})
+	if err != nil {
+		panic(err.Error())
+	}
 
-	go func() {
-		for key := range del {
-			core.Del(key)
-		}
-	}()
+	core, err := hotkey.NewCore("relation.rpc", eClient, hotkey.WithCacheSize(1024*1024*1024))
+
+	if err != nil {
+		panic(err.Error())
+	}
 
 	svc := &ServiceContext{
 		Config:   c,

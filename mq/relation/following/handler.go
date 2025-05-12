@@ -8,10 +8,10 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	interlua "fansX/mq/relation/following/lua"
-	"fansX/pkg/hotkey-go/hotkey"
+	"fansX/mq/relation/script"
 	"fansX/services/content/public/proto/publicContentRpc"
 	"github.com/IBM/sarama"
+	"github.com/avast/retry-go"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -24,23 +24,25 @@ type Handler struct {
 	db                  *gorm.DB
 	client              *redis.Client
 	executor            *lua.Executor
-	core                *hotkey.Core
 	bigCache            *bigcache.Cache
 	publicContentClient publicContentRpc.PublicContentServiceClient
 }
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
 func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+
+// ConsumeClaim 缓存更新，inbox更新，table更新
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := &mq.FollowingCanalJson{}
-		err := json.Unmarshal(msg.Value, msg)
+		message := &mq.FollowingCdcJson{}
+		err := json.Unmarshal(msg.Value, message)
 
 		if err != nil {
 			slog.Error(err.Error())
 			continue
 		}
-		if len(message.Data) == 0 {
+		if len(message.Data) == 0 || message.IsDdl {
+			slog.Info("receive message:", "len data", len(message.Data), "is ddl", message.IsDdl)
 			continue
 		}
 
@@ -49,23 +51,24 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 		key1 := "Following:" + message.Data[0].FollowerId
 		key2 := "FollowingNums:" + message.Data[0].FollowerId
 		h.client.Del(context.Background(), key1, key2)
-		h.core.SendDel(key2)
 
-		for i := 0; i < 3; i++ {
+		times := 0
+		// 无限重试
+		_ = retry.Do(func() error {
 			err = h.process(data)
-
 			if err != nil {
-				slog.Error(err.Error(), "times", i+1)
-				continue
-			} else {
-				session.MarkMessage(msg, "")
-				break
+				slog.Error(err.Error(), "times", times+1)
+				times++
+				return err
 			}
-		}
+			session.MarkMessage(msg, "")
+			return nil
+		}, retry.Attempts(1000), retry.DelayType(retry.BackOffDelay), retry.MaxDelay(time.Second))
 
-		// error process
-		_ = h.UpdateInbox(data)
-
+		// 有限重试
+		_ = retry.Do(func() error {
+			return h.UpdateInbox(data)
+		})
 	}
 
 	return nil
@@ -151,7 +154,7 @@ func (h *Handler) UpdateInbox(data *database.Follower) error {
 				sm[i*2+1] = strconv.FormatInt(data.FollowingId, 10) + ";" + strconv.FormatInt(resp.Id[i], 10)
 			}
 
-			err = h.executor.Execute(context.Background(), interlua.GetAdd(), []string{inbox, "100"}, sm).Err()
+			err = h.executor.Execute(context.Background(), script.InsertZSetWithMa, []string{inbox, "100"}, sm).Err()
 			if err != nil {
 				slog.Error("add content to inbox:"+err.Error(), "followingId", data.FollowingId, "userId", data.FollowerId)
 				return err
@@ -161,7 +164,7 @@ func (h *Handler) UpdateInbox(data *database.Follower) error {
 		if !h.bigCache.IsBig(data.FollowingId) {
 			inbox := "inbox:" + strconv.FormatInt(data.FollowerId, 10)
 			prefix := strconv.FormatInt(data.FollowingId, 10)
-			err := h.executor.Execute(context.Background(), interlua.GetDel(), []string{inbox}, prefix).Err()
+			err := h.executor.Execute(context.Background(), script.RemoveZSet, []string{inbox}, prefix).Err()
 			if err != nil {
 				slog.Error("del unfollowing user content in inbox:"+err.Error(), "followingId", data.FollowingId)
 				return err
@@ -171,7 +174,7 @@ func (h *Handler) UpdateInbox(data *database.Follower) error {
 	return nil
 }
 
-func Trans(f *mq.Following) *database.Follower {
+func Trans(f *mq.FollowingCdc) *database.Follower {
 	t, _ := strconv.Atoi(f.Type)
 	id, _ := strconv.ParseInt(f.Id, 10, 64)
 	u, _ := strconv.ParseInt(f.UpdatedAt, 10, 64)

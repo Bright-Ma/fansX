@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
-	"fansX/internal/script/likeservicescript"
 	"fansX/internal/util"
+	"fansX/services/like/internal/script"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
@@ -68,7 +68,7 @@ func (l *ListLikesLogic) ListLikes(in *likeRpc.ListLikesReq) (*likeRpc.ListLikes
 
 func SearchLikeListFromRedis(ctx context.Context, logger *slog.Logger, svc *svc.ServiceContext, key string, in *likeRpc.ListLikesReq) ([][]int64, bool, error) {
 	executor := svc.Executor
-	inter, err := executor.Execute(ctx, likeservicescript.List, []string{key}, in.TimeStamp, in.Limit).Result()
+	inter, err := executor.Execute(ctx, script.List, []string{key}, in.TimeStamp, in.Limit).Result()
 	if err != nil {
 		logger.Error("search like list from redis:" + err.Error())
 		return nil, false, err
@@ -111,7 +111,7 @@ func RebuildLikeList(executor *lua.Executor, key string, list [][]int64, all boo
 	} else {
 		a = "false"
 	}
-	executor.Execute(timeout, likeservicescript.BuildList, []string{key, a, "false", "60"}, data...)
+	executor.Execute(timeout, script.BuildList, []string{key, a, "false", "60"}, data...)
 }
 
 func SearchLikeListJudge(logger *slog.Logger, db *gorm.DB, in *likeRpc.ListLikesReq, list [][]int64, all bool) (*likeRpc.ListLikesResp, error) {

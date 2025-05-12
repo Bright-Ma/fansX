@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fansX/internal/model/database"
-	"fansX/internal/script/commentservicescript"
 	"fansX/internal/util"
 	syncx "fansX/pkg/sync"
+	"fansX/services/comment/internal/script"
 	"log/slog"
 	"sort"
 	"strconv"
@@ -161,7 +161,7 @@ func (l *GetCommentListByTimeLogic) BuildRedis(key string, records []ListRecord,
 	data[len(data)-3] = 5
 	data[len(data)-2] = -2
 	data[len(data)-1] = all
-	err := l.svcCtx.Executor.Execute(context.Background(), commentservicescript.Build, []string{key, "60"}, data).Err()
+	err := l.svcCtx.Executor.Execute(context.Background(), script.Build, []string{key, "60"}, data).Err()
 	if err != nil {
 		slog.Error("build comment list by time redis:" + err.Error())
 	}
@@ -169,7 +169,7 @@ func (l *GetCommentListByTimeLogic) BuildRedis(key string, records []ListRecord,
 
 func (l *GetCommentListByTimeLogic) GetFromRedis(ctx context.Context, key string, limit int, timestamp int64, logger *slog.Logger) ([]ListRecord, int) {
 	executor := l.svcCtx.Executor
-	resp, err := executor.Execute(ctx, commentservicescript.GetByTime, []string{key}, limit, timestamp).Result()
+	resp, err := executor.Execute(ctx, script.GetByTime, []string{key}, limit, timestamp).Result()
 	if err != nil {
 		logger.Error("execute lua to get time list from redis:" + err.Error())
 		return nil, StatusError

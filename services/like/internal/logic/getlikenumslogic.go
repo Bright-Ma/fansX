@@ -5,9 +5,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fansX/internal/model/database"
-	"fansX/internal/script/likeservicescript"
 	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
+	"fansX/services/like/internal/script"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
@@ -68,7 +68,7 @@ func (l *GetLikeNumsLogic) GetLikeNums(in *likeRpc.GetLikeNumsReq) (*likeRpc.Get
 			return nil, err
 		}
 		if rebuild {
-			executor.Execute(timeout, likeservicescript.Set, []string{key}, resp.(*likeRpc.GetLikeNumsResp).Nums)
+			executor.Execute(timeout, script.Set, []string{key}, resp.(*likeRpc.GetLikeNumsResp).Nums)
 		}
 		return resp, nil
 	})

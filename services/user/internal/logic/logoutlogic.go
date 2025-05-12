@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"time"
 
 	"fansX/services/user/internal/svc"
 	"fansX/services/user/proto/UserRpc"
@@ -24,7 +25,7 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 }
 
 func (l *LogoutLogic) Logout(in *UserRpc.LogoutReq) (*UserRpc.LogoutResp, error) {
-	// todo: add your logic here and delete this line
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	return &UserRpc.LogoutResp{}, nil
 }

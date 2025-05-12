@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fansX/internal/model/database"
-	"fansX/internal/script/commentservicescript"
 	"fansX/internal/util"
 	syncx "fansX/pkg/sync"
+	"fansX/services/comment/internal/script"
 	"log/slog"
 	"strconv"
 	"time"
@@ -105,7 +105,7 @@ func (l *GetCommentListByHotLogic) BuildRedis(key string, records []ListHotRecor
 	}
 	data[len(data)-2] = -1
 	data[len(data)-1] = 5
-	err := l.svcCtx.Executor.Execute(context.Background(), commentservicescript.Build, []string{key, strconv.Itoa(60)}, data).Err()
+	err := l.svcCtx.Executor.Execute(context.Background(), script.Build, []string{key, strconv.Itoa(60)}, data).Err()
 	if err != nil {
 		slog.Error("get comment list by hot build redis:" + err.Error())
 	}
@@ -113,7 +113,7 @@ func (l *GetCommentListByHotLogic) BuildRedis(key string, records []ListHotRecor
 
 func (l *GetCommentListByHotLogic) GetFromRedis(ctx context.Context, key string, limit int, offset int, logger *slog.Logger) ([]ListHotRecord, int) {
 	executor := l.svcCtx.Executor
-	resp, err := executor.Execute(ctx, commentservicescript.GetByHot, []string{key}, limit, offset).Result()
+	resp, err := executor.Execute(ctx, script.GetByHot, []string{key}, limit, offset).Result()
 	if err != nil {
 		logger.Error("execute lua to get hot list from redis:" + err.Error())
 		return nil, StatusError

@@ -7,6 +7,7 @@ service AuthService{
   rpc RefreshSession(RefreshSessionReq) returns(RefreshSessionResp){}//续约session
   rpc DeleteSession(DeleteSessionReq) returns (DeleteSessionResp){}//删除session
   rpc CreateVoucher(CreateVoucherReq) returns (CreateVoucherResp){} //凭证创建
+  rpc IsActive(IsActiveReq)returns(IsActiveResp){} //活跃判断
 }
 
 message AuthenticationReq{
@@ -44,5 +45,13 @@ message CreateVoucherResp{
   bool ok = 1;
   string sessionId = 2;
   string token = 3;
+}
+
+message IsActiveReq{
+  int64 userId=1;
+}
+
+message IsActiveResp{
+  bool is=1;
 }
 

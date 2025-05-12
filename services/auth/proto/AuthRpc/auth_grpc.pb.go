@@ -23,6 +23,7 @@ const (
 	AuthService_RefreshSession_FullMethodName = "/AuthRpc.AuthService/RefreshSession"
 	AuthService_DeleteSession_FullMethodName  = "/AuthRpc.AuthService/DeleteSession"
 	AuthService_CreateVoucher_FullMethodName  = "/AuthRpc.AuthService/CreateVoucher"
+	AuthService_IsActive_FullMethodName       = "/AuthRpc.AuthService/IsActive"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -33,6 +34,7 @@ type AuthServiceClient interface {
 	RefreshSession(ctx context.Context, in *RefreshSessionReq, opts ...grpc.CallOption) (*RefreshSessionResp, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionReq, opts ...grpc.CallOption) (*DeleteSessionResp, error)
 	CreateVoucher(ctx context.Context, in *CreateVoucherReq, opts ...grpc.CallOption) (*CreateVoucherResp, error)
+	IsActive(ctx context.Context, in *IsActiveReq, opts ...grpc.CallOption) (*IsActiveResp, error)
 }
 
 type authServiceClient struct {
@@ -83,6 +85,16 @@ func (c *authServiceClient) CreateVoucher(ctx context.Context, in *CreateVoucher
 	return out, nil
 }
 
+func (c *authServiceClient) IsActive(ctx context.Context, in *IsActiveReq, opts ...grpc.CallOption) (*IsActiveResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IsActiveResp)
+	err := c.cc.Invoke(ctx, AuthService_IsActive_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type AuthServiceServer interface {
 	RefreshSession(context.Context, *RefreshSessionReq) (*RefreshSessionResp, error)
 	DeleteSession(context.Context, *DeleteSessionReq) (*DeleteSessionResp, error)
 	CreateVoucher(context.Context, *CreateVoucherReq) (*CreateVoucherResp, error)
+	IsActive(context.Context, *IsActiveReq) (*IsActiveResp, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedAuthServiceServer) DeleteSession(context.Context, *DeleteSess
 }
 func (UnimplementedAuthServiceServer) CreateVoucher(context.Context, *CreateVoucherReq) (*CreateVoucherResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateVoucher not implemented")
+}
+func (UnimplementedAuthServiceServer) IsActive(context.Context, *IsActiveReq) (*IsActiveResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsActive not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -206,6 +222,24 @@ func _AuthService_CreateVoucher_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_IsActive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsActiveReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).IsActive(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_IsActive_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).IsActive(ctx, req.(*IsActiveReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateVoucher",
 			Handler:    _AuthService_CreateVoucher_Handler,
+		},
+		{
+			MethodName: "IsActive",
+			Handler:    _AuthService_IsActive_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

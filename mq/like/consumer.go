@@ -5,7 +5,7 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	"fansX/internal/script/likeconsumerscript"
+	"fansX/mq/like/script"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
@@ -67,7 +67,7 @@ func (c *Consumer) Update() {
 			tx.Rollback()
 			slog.Error("update like count:"+err.Error(), "business", k[0], "like_id", k[1])
 		}
-		executor.Execute(timeout, likeconsumerscript.AddScript, []string{
+		executor.Execute(timeout, script.AddScript, []string{
 			"LikeNums:" + strconv.Itoa(int(k[0])) + ":" + strconv.FormatInt(k[1], 10),
 			"false",
 		}, v)

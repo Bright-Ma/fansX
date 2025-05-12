@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fansX/internal/middleware/lua"
-	"fansX/internal/middleware/lua/script/string"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	interlua "fansX/mq/relation/follower/lua"
+	"fansX/mq/relation/script"
 	"fansX/pkg/hotkey-go/hotkey"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
@@ -26,10 +25,14 @@ func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
 func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := &mq.FollowerCanalJson{}
+		message := &mq.FollowerCdcJson{}
 		err := json.Unmarshal(msg.Value, message)
 		if err != nil {
+			slog.Info("receive message:", "len data", len(message.Data), "is ddl", message.IsDdl)
 			slog.Error("unmarshal json:" + err.Error())
+			continue
+		}
+		if len(message.Data) == 0 || message.IsDdl {
 			continue
 		}
 		data := Trans(&message.Data[0])
@@ -40,7 +43,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 	return nil
 }
 
-func Trans(msg *mq.Follower) *database.Follower {
+func Trans(msg *mq.FollowerCdc) *database.Follower {
 	t, _ := strconv.Atoi(msg.Type)
 	id, _ := strconv.ParseInt(msg.Id, 10, 64)
 	u, _ := strconv.ParseInt(msg.UpdatedAt, 10, 64)
@@ -63,10 +66,10 @@ func (h *Handler) UpdateRedis(data *database.Follower) {
 
 	key := "Follower:" + strconv.FormatInt(data.FollowingId, 10)
 	if data.Type == database.Followed {
-		e.Execute(timeout, interlua.GetAdd(), []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
+		e.Execute(timeout, script.InsertZSet, []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
+		e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
 	} else {
 		h.client.ZRem(timeout, key, strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(timeout, luaString.GetIncrBy(), []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
+		e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
 	}
 }

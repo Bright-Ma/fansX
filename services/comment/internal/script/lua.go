@@ -1,4 +1,4 @@
-package commentservicescript
+package script
 
 import "fansX/internal/middleware/lua"
 
