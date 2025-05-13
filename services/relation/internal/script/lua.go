@@ -23,7 +23,7 @@ end
 }
 
 const GetFiledTableNE = "TableNotExists"
-const GetFiledFiledNE = "FiledNotExists"
+const GetFiledFiledNE = "FieldNotExists"
 
 var BuildZSet *lua.Script
 

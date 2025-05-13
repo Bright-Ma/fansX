@@ -34,7 +34,8 @@ func main() {
 	config.Consumer.Offsets.AutoCommit.Enable = false
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_followers_group", config)
 	handler := Handler{
-		client: client,
+		client:   client,
+		executor: executor,
 	}
 
 	err = consumer.Consume(context.Background(), []string{"test_relation_followers"}, &handler)

@@ -36,7 +36,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	r := redis.NewClient(&redis.Options{
 		Addr: "127.0.0.1:6379",
-		DB:   1,
+		DB:   0,
 	})
 	creator, err := leaf.NewCore(leaf.Config{
 		Model: leaf.Snowflake,

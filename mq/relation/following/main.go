@@ -20,7 +20,7 @@ func main() {
 
 	client := redis.NewClient(&redis.Options{
 		Addr: "1jian10.cn:6379",
-		DB:   1,
+		DB:   0,
 	})
 	e := lua.NewExecutor(client)
 	_, err = e.Load(context.Background(), []*lua.Script{

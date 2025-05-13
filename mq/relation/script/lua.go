@@ -12,7 +12,7 @@ local data=ARGV
 local exists=redis.call("EXISTS",key)
 
 if exists==0
-    then return nil
+    then return true
 end
 
 for i=1,#data,2
@@ -29,6 +29,7 @@ var IncrBy *lua.Script
 
 func init() {
 	IncrBy = lua.NewScript("IncrBy", `
+local key=KEYS[1]
 local num=ARGV[1]
 
 local exists=redis.call("EXISTS",key)

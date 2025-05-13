@@ -7,7 +7,6 @@ import (
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
 	"fansX/mq/relation/script"
-	"fansX/pkg/hotkey-go/hotkey"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
@@ -17,7 +16,6 @@ import (
 
 type Handler struct {
 	client   *redis.Client
-	core     *hotkey.Core
 	executor *lua.Executor
 }
 
@@ -59,6 +57,7 @@ func Trans(msg *mq.FollowerCdc) *database.Follower {
 	}
 }
 
+// UpdateRedis 增量更新redis
 func (h *Handler) UpdateRedis(data *database.Follower) {
 	e := h.executor
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -66,10 +65,24 @@ func (h *Handler) UpdateRedis(data *database.Follower) {
 
 	key := "Follower:" + strconv.FormatInt(data.FollowingId, 10)
 	if data.Type == database.Followed {
-		e.Execute(timeout, script.InsertZSet, []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1)
+		err := e.Execute(timeout, script.InsertZSet, []string{key}, strconv.FormatInt(data.UpdatedAt, 10), strconv.FormatInt(data.FollowerId, 10)).Err()
+		if err != nil {
+			slog.Error("insert user to follower list in redis:" + err.Error())
+		}
+
+		err = e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, 1).Err()
+		if err != nil {
+			slog.Error("add follower nums to redis:" + err.Error())
+		}
 	} else {
-		h.client.ZRem(timeout, key, strconv.FormatInt(data.FollowerId, 10))
-		e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1)
+		err := h.client.ZRem(timeout, key, data.FollowerId).Err()
+		if err != nil {
+			slog.Error("del user to follower list in redis:" + err.Error())
+		}
+
+		err = e.Execute(timeout, script.IncrBy, []string{"FollowerNums:" + strconv.FormatInt(data.FollowingId, 10)}, -1).Err()
+		if err != nil {
+			slog.Error("sub follower nums to redis:" + err.Error())
+		}
 	}
 }

@@ -35,7 +35,7 @@ func (l *CancelFollowLogic) CancelFollow(in *relationRpc.CancelFollowReq) (*rela
 	defer cancel()
 
 	tx := db.WithContext(timeout).Begin()
-
+	// 直接更新
 	res := tx.Model(&database.Following{}).
 		Where("follower_id = ? and type = ? and following_id = ?", in.UserId, database.Followed, in.FollowId).
 		Update("type", database.UnFollowed)
@@ -45,6 +45,7 @@ func (l *CancelFollowLogic) CancelFollow(in *relationRpc.CancelFollowReq) (*rela
 		tx.Rollback()
 		return nil, res.Error
 	}
+	// 没有记录(关系)
 	if res.RowsAffected == 0 {
 		logger.Info("also cancel following relation")
 		tx.Commit()
@@ -52,7 +53,7 @@ func (l *CancelFollowLogic) CancelFollow(in *relationRpc.CancelFollowReq) (*rela
 	}
 
 	logger.Debug("update table-following")
-
+	// 关注数量更新
 	err := tx.Take(&database.FollowingNums{}, in.UserId).Update("nums", gorm.Expr("nums - 1")).Error
 	if err != nil {
 		logger.Error("update table-following_nums:" + err.Error())

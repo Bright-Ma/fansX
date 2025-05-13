@@ -8,7 +8,7 @@ local data=ARGV
 local exists=redis.call("EXISTS",key)
 
 if exists==0
-    then return nil
+    then return true
 end
 
 for i=1,#data,2
