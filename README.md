@@ -1,4 +1,5 @@
 # fansX
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/1jian10/fansX)
 ## 概览
 这是一个微服务视频项目，思路源于一些书籍及国内技术团队的文章，目前正在开发
 ### 当前已完成部分
