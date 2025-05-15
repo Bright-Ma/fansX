@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fansX/internal/model/database"
 	"fansX/internal/util"
 	"fmt"
 	"github.com/IBM/sarama"
@@ -22,18 +23,25 @@ func main() {
 		panic(err.Error())
 	}
 
-	logger, err := util.InitLog("mq:PublicContent", slog.LevelDebug)
+	logger, err := util.InitLog("metacontent.kafka", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}
 	slog.SetDefault(logger)
 
-	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_meta_content_group", config)
+	factory := NewFactory()
+	factory.RegisterStrategy(database.ContentStatusPass, &PassStrategy{})
+	factory.RegisterStrategy(database.ContentStatusDelete, &DeleteStrategy{})
+	factory.RegisterStrategy(database.ContentStatusCheck, &CheckStrategy{})
+	factory.RegisterStrategy(database.ContentStatusNotPass, &NotPassStrategy{})
+
+	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_content_meta_group", config)
 	handler := Handler{
-		db: db,
+		db:      db,
+		factory: factory,
 	}
 	fmt.Println("in")
-	err = consumer.Consume(context.Background(), []string{"test_meta_content"}, &handler)
+	err = consumer.Consume(context.Background(), []string{"test_content_meta"}, &handler)
 	if err != nil {
 		panic(err.Error())
 	}

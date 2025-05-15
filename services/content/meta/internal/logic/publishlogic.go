@@ -3,7 +3,6 @@ package logic
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fansX/internal/model/database"
 	"fansX/internal/util"
 	"fansX/services/content/meta/internal/svc"
@@ -35,12 +34,12 @@ func (l *PublishLogic) Publish(in *metaContentRpc.PublishReq) (*metaContentRpc.E
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
 
 	logger.Info("user publish", "userId", in.UserId)
-
-	id, ok := creator.GetId()
-	if !ok {
-		logger.Error("creator create id failed")
-		return nil, errors.New("get id failed")
+	id, err := creator.GetIdWithContext(timeout)
+	if err != nil {
+		logger.Error("time out when get id")
+		return nil, err
 	}
+
 	p, err := json.Marshal(in.PhotoUriList)
 	if err != nil {
 		logger.Error("json marshal photo uri list:"+err.Error(), "list", in.PhotoUriList)

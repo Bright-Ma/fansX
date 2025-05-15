@@ -66,9 +66,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 			}
 			// 有限重试
 			_ = retry.Do(func() error {
-				// inbox补偿
-				//return h.UpdateInbox(data)
-				return nil
+				return h.UpdateInbox(data)
 			})
 			return nil
 		}, retry.Attempts(1000), retry.DelayType(retry.BackOffDelay), retry.MaxDelay(time.Second))

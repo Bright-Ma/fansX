@@ -22,11 +22,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err.Error())
 	}
-	logger, err := util.InitLog("ContentService", slog.LevelDebug)
+
+	logger, err := util.InitLog("metacontent.rpc", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}
-	creator, err := leaf.Init(&leaf.Config{
+
+	creator, err := leaf.NewCore(leaf.Config{
 		Model: leaf.Snowflake,
 		SnowflakeConfig: &leaf.SnowflakeConfig{
 			CreatorName: "metacontent.rpc",
@@ -39,6 +41,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	svc := &ServiceContext{
+		Config:  c,
 		DB:      db,
 		Logger:  logger,
 		Creator: creator,

@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fansX/internal/middleware/lua"
-	"fansX/internal/middleware/lua/script/zset"
 	"fansX/internal/model/database"
 	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
-	interlua "fansX/services/content/public/internal/lua"
+	"fansX/services/content/public/internal/script"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
@@ -95,7 +94,7 @@ func (l *GetUserContentListLogic) GetUserContentList(in *publicContentRpc.GetUse
 			data[i*2] = strconv.FormatInt(list[1][i], 10)
 			data[i*2+1] = strconv.FormatInt(list[0][i], 10)
 		}
-		err = executor.Execute(timeout, luaZset.GetCreate(), []string{key, "false", "900"}, data).Err()
+		err = executor.Execute(timeout, script.BuildZSet, []string{key, "false", "900"}, data).Err()
 		if err != nil {
 			logger.Warn("set content list to redis:" + err.Error())
 		}
@@ -117,7 +116,7 @@ func contentListFromRedis(arguments ...interface{}) ([][]int64, bool, error) {
 	executor := arguments[3].(*lua.Executor)
 	logger := arguments[4].(*slog.Logger)
 
-	inter, err := executor.Execute(ctx, interlua.GetRevByScoreScript(), []string{key}, 0, timestamp).Result()
+	inter, err := executor.Execute(ctx, script.RevByScore, []string{key}, 0, timestamp).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logger.Error("execute get rev by score:" + err.Error())
 		return nil, false, err

@@ -6,6 +6,7 @@ import (
 	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
 	"fansX/services/content/public/internal/config"
+	"fansX/services/content/public/internal/script"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
@@ -44,23 +45,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	e := lua.NewExecutor(client)
-	if err := e.LoadAll(); err != nil {
+	_, err = e.Load(context.Background(), []*lua.Script{script.BuildZSet})
+	if err != nil {
 		panic(err.Error())
 	}
-
-	del := make(chan string, 1024*64)
-	core, err := hotkey.NewCore(hotkey.Config{
-		Model:      hotkey.ModelCache,
-		GroupName:  "PublicContent.rpc",
-		CacheSize:  1024 * 1024 * 512,
-		HotKeySize: 1024 * 1024 * 64,
-		EtcdConfig: etcd.Config{
-			Endpoints:   []string{"127.0.0.1:4379"},
-			DialTimeout: time.Second * 3,
-		},
-		DelChan: del,
-		HotChan: nil,
+	eClient, err := etcd.New(etcd.Config{
+		Endpoints:   []string{"1jian10.cn:4379"},
+		DialTimeout: time.Second * 3,
 	})
+	if err != nil {
+		panic(err.Error())
+	}
+	core, err := hotkey.NewCore("", eClient,
+		hotkey.WithCacheSize(1024*1024*1024),
+		hotkey.WithChannelSize(1024*64),
+	)
 	if err != nil {
 		panic(err.Error())
 	}

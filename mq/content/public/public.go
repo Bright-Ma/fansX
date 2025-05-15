@@ -3,14 +3,16 @@ package main
 import (
 	"context"
 	bigcache "fansX/internal/middleware/cache"
-	lua2 "fansX/internal/middleware/lua"
+	"fansX/internal/middleware/lua"
 	"fansX/internal/util"
-	interlua "fansX/mq/content/public/lua"
+	"fansX/mq/content/script"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
+	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
+	"time"
 )
 
 func main() {
@@ -25,7 +27,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	logger, err := util.InitLog("mq:PublicContent", slog.LevelDebug)
+	logger, err := util.InitLog("publiccontent.kafka", slog.LevelDebug)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -38,26 +40,29 @@ func main() {
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		panic(err.Error())
 	}
+	eClient, err := etcd.New(etcd.Config{
+		Endpoints:   []string{"1jian10.cn:4379"},
+		DialTimeout: time.Second * 3,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	cache := bigcache.NewCache(eClient)
 
-	cache, err := bigcache.Init(client)
+	executor := lua.NewExecutor(client)
+	_, err = executor.Load(context.Background(), []*lua.Script{script.AddZSet})
 	if err != nil {
 		panic(err.Error())
 	}
 
-	executor := lua2.NewExecutor(client)
-	_, err = executor.Load(context.Background(), []lua2.Script{interlua.GetAdd()})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_public_content_group", config)
+	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_content_public_group", config)
 	handler := Handler{
 		db:       db,
 		client:   client,
 		bigCache: cache,
 	}
 
-	err = consumer.Consume(context.Background(), []string{"test_public_content"}, &handler)
+	err = consumer.Consume(context.Background(), []string{"test_content_public"}, &handler)
 	if err != nil {
 		panic(err.Error())
 	}

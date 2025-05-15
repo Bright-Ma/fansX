@@ -7,7 +7,7 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
-	interlua "fansX/mq/content/public/lua"
+	"fansX/mq/content/script"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
@@ -36,7 +36,7 @@ func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
 
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := &mq.PublicContentJson{}
+		message := &mq.PublicContentCdcJson{}
 		err := json.Unmarshal(msg.Value, message)
 		if err != nil {
 			slog.Error("unmarshal json:" + err.Error())
@@ -74,7 +74,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 	return nil
 }
 
-func Translate(message *mq.PublicContentJson) *database.VisibleContentInfo {
+func Translate(message *mq.PublicContentCdcJson) *database.VisibleContentInfo {
 	id, _ := strconv.ParseInt(message.Data[0].Id, 10, 64)
 	version, _ := strconv.ParseInt(message.Data[0].Version, 10, 64)
 	status, _ := strconv.ParseInt(message.Data[0].Status, 10, 64)
@@ -123,7 +123,7 @@ func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
 		member := strconv.FormatInt(record.Userid, 10) + ";" + strconv.FormatInt(record.Id, 10)
 		for _, id := range listResp.UserId {
 			key := "inbox:" + strconv.FormatInt(id, 10)
-			err = h.executor.Execute(timeout, interlua.GetAdd(), []string{key, "100"}, record.CreatedAt, member).Err()
+			err = h.executor.Execute(timeout, script.AddZSet, []string{key, "100"}, record.CreatedAt, member).Err()
 			if err != nil {
 				slog.Error("put message to user inbox:" + err.Error())
 				continue
@@ -135,5 +135,7 @@ func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
 }
 
 func (h *Handler) CreateLikeRecord(record *database.VisibleContentInfo) error {
+	// ToDo
 	h.db.Model(&database.LikeCount{}).Clauses(clause.Locking{Strength: "UPDATE"}).Where("")
+	return nil
 }
