@@ -20,8 +20,10 @@ func main() {
 		&database.VisibleContentInfo{},
 		&database.InvisibleContentInfo{},
 		&database.Like{},
-		&database.TimeWindow{},
-		&database.WindowLatest{},
+		&database.LikeCount{},
+		&database.User{},
+		&database.Comment{},
+		&database.CommentCount{},
 	)
 	if err != nil {
 		panic(err.Error())

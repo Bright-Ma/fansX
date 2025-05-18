@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	lua "fansX/internal/middleware/lua"
-	interlua "fansX/mq/feed/lua"
-	leaf "fansX/pkg/leaf-go"
+	bigcache "fansX/internal/middleware/cache"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
+	etcd "go.etcd.io/etcd/client/v3"
+	"time"
 )
 
 func main() {
@@ -16,38 +16,26 @@ func main() {
 	config.Consumer.Offsets.AutoCommit.Enable = false
 
 	client := redis.NewClient(&redis.Options{
-		Addr: "127.0.0.1:6379",
+		Addr: "1jian10.cn:6379",
 		DB:   0,
 	})
 	if err := client.Ping(context.Background()).Err(); err != nil {
 		panic(err.Error())
 	}
 
-	executor := lua.NewExecutor(client)
-	err := executor.LoadAll()
-	if err != nil {
-		panic(err.Error())
-	}
-	_, err = executor.Load(context.Background(), []lua.Script{interlua.GetAdd()})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	creator, err := leaf.Init(&leaf.Config{
-		Model: leaf.Segment,
-		SegmentConfig: &leaf.SegmentConfig{
-			Name:     "FeedKafkaConsumer",
-			UserName: "root",
-			Password: "",
-			Address:  "linux.1jian10.cn:4000",
-		},
+	eClient, err := etcd.New(etcd.Config{
+		Endpoints:   []string{"1jian10.cn:4379"},
+		DialTimeout: time.Second * 3,
 	})
+	if err != nil {
+		panic(err.Error())
+	}
+	creator := bigcache.NewCacheCreator(eClient)
 
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_feed_group", config)
 	handler := Handler{
-		client:   client,
-		executor: executor,
-		creator:  creator,
+		client:       client,
+		cacheCreator: creator,
 	}
 
 	err = consumer.Consume(context.Background(), []string{"test_feed"}, &handler)

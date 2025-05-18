@@ -3,16 +3,18 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	bigcache "fansX/internal/middleware/cache"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/internal/model/mq"
 	"fansX/mq/content/script"
+	leaf "fansX/pkg/leaf-go"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/IBM/sarama"
+	"github.com/avast/retry-go"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"log/slog"
 	"strconv"
 	"time"
@@ -24,6 +26,7 @@ type Handler struct {
 	client         *redis.Client
 	relationClient relationRpc.RelationServiceClient
 	executor       *lua.Executor
+	creator        leaf.Core
 }
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
@@ -47,34 +50,35 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 			continue
 		}
 		slog.Info("consume kafka message", "dml_type", message.Type)
-		// need to update minio text db...
-		if message.Type == "INSERT" {
-			record := Translate(message)
-			err = h.handleInsert(record)
-			if err == nil {
-				session.MarkMessage(msg, "")
-			}
-		} else if message.Type == "UPDATE" {
-			if message.Data[0].Status == strconv.Itoa(database.ContentStatusDelete) {
-				record := Translate(message)
-				err = h.handleDelete(record)
-				if err == nil {
-					session.MarkMessage(msg, "")
+		record := Translate(message)
+		err = retry.Do(func() error {
+			switch message.Type {
+			case "INSERT":
+				return h.handleInsert(record)
+			case "UPDATE":
+				if message.Data[0].Status == strconv.Itoa(database.ContentStatusPass) {
+					return h.handleDelete(record)
 				}
-			} else {
-				slog.Info("update message is not delete")
+				return nil
+			case "DELETE":
+				return nil
+			default:
+				slog.Info("unsupported type", "type", message.Type)
+				return nil
 			}
-		} else if message.Type == "DELETE" {
-			slog.Info("delete message")
+		}, retry.Attempts(1000), retry.DelayType(retry.BackOffDelay), retry.MaxDelay(time.Second))
+		if err == nil {
 			session.MarkMessage(msg, "")
-		} else {
-			slog.Error("un supported type")
 		}
+
 	}
 	return nil
 }
 
 func Translate(message *mq.PublicContentCdcJson) *database.VisibleContentInfo {
+	if len(message.Data) == 0 {
+		return nil
+	}
 	id, _ := strconv.ParseInt(message.Data[0].Id, 10, 64)
 	version, _ := strconv.ParseInt(message.Data[0].Version, 10, 64)
 	status, _ := strconv.ParseInt(message.Data[0].Status, 10, 64)
@@ -99,19 +103,30 @@ func Translate(message *mq.PublicContentCdcJson) *database.VisibleContentInfo {
 
 func (h *Handler) handleDelete(record *database.VisibleContentInfo) error {
 	h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
-	h.db.Delete(&database.LikeCount{}, "business = ? and like_id = ?", database.BusinessContent, record.Id)
+	if err := h.UnLinkLike(record); err != nil {
+		return err
+	}
+	if err := h.UnLinkComment(record); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
+	if err := h.LinkLike(record); err != nil {
+		return err
+	}
+	if err := h.LinkComment(record); err != nil {
+		return err
+	}
 	is := h.bigCache.IsBig(record.Userid)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	if is {
 		h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
 		slog.Info("is big user just update cache")
 		return nil
 	} else {
-		timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
 		listResp, err := h.relationClient.ListFollowing(timeout, &relationRpc.ListFollowingReq{
 			UserId: record.Userid,
 			All:    true,
@@ -134,8 +149,108 @@ func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
 	return nil
 }
 
-func (h *Handler) CreateLikeRecord(record *database.VisibleContentInfo) error {
-	// ToDo
-	h.db.Model(&database.LikeCount{}).Clauses(clause.Locking{Strength: "UPDATE"}).Where("")
+func (h *Handler) LinkLike(record *database.VisibleContentInfo) error {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	tx := h.db.WithContext(timeout).Begin()
+	err := tx.Where("business = ? and like_id = ?", database.BusinessContent, record.Id).Take(&database.LikeCount{}).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Error("get like count record failed:" + err.Error())
+		tx.Commit()
+		return err
+	} else if err == nil {
+		slog.Info("like count record have been created")
+		return nil
+	}
+	id, err := h.creator.GetIdWithContext(timeout)
+	if err != nil {
+		slog.Error("create like count id failed:" + err.Error())
+		tx.Commit()
+		return err
+	}
+
+	err = tx.Create(&database.LikeCount{
+		Id:       id,
+		Business: database.BusinessContent,
+		LikeId:   record.Id,
+		Count:    0,
+	}).Error
+	if err != nil {
+		slog.Error("create like count failed:" + err.Error())
+		tx.Rollback()
+		return err
+	}
+	slog.Info("create like count success", "contentId", record.Id)
+	tx.Commit()
+	return nil
+}
+
+func (h *Handler) LinkComment(record *database.VisibleContentInfo) error {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	tx := h.db.WithContext(timeout).Begin()
+	err := tx.Where("business = ? and count_id = ?", database.BusinessContent, record.Id).Take(&database.CommentCount{}).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Error("get comment count record failed:" + err.Error())
+		tx.Commit()
+		return err
+	} else if err == nil {
+		slog.Info("comment count record have been created")
+		return nil
+	}
+	id, err := h.creator.GetIdWithContext(timeout)
+	if err != nil {
+		slog.Error("create comment count id failed:" + err.Error())
+		tx.Commit()
+		return err
+	}
+
+	err = tx.Create(&database.CommentCount{
+		Id:       id,
+		Business: database.BusinessContent,
+		CountId:  record.Id,
+		Count:    0,
+	}).Error
+	if err != nil {
+		slog.Error("create comment count failed:" + err.Error())
+		tx.Rollback()
+		return err
+	}
+	slog.Info("create comment count success", "contentId", record.Id)
+	tx.Commit()
+	return nil
+}
+
+func (h *Handler) UnLinkComment(record *database.VisibleContentInfo) error {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	tx := h.db.WithContext(timeout).Begin()
+	slog.Info("unlink comment count")
+
+	err := tx.Where("business = ? and count_id = ?", database.BusinessComment, record.Id).Delete(&database.CommentCount{}).Error
+	if err != nil {
+		tx.Rollback()
+		slog.Error("delete comment count failed:" + err.Error())
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func (h *Handler) UnLinkLike(record *database.VisibleContentInfo) error {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	tx := h.db.WithContext(timeout).Begin()
+	slog.Info("unlink like count")
+
+	err := tx.Where("business = ? and like_id = ?", database.BusinessComment, record.Id).Delete(&database.LikeCount{}).Error
+	if err != nil {
+		tx.Rollback()
+		slog.Error("delete like count failed:" + err.Error())
+		return err
+	}
+	tx.Commit()
 	return nil
 }

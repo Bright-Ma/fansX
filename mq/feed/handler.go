@@ -4,26 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	bigcache "fansX/internal/middleware/cache"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/middleware/lua/script/hash"
 	"fansX/internal/model/mq"
 	"fansX/mq/feed/lua"
-	leaf "fansX/pkg/leaf-go"
 	"fansX/services/content/public/proto/publicContentRpc"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/IBM/sarama"
+	"github.com/avast/retry-go"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"strconv"
+	"sync"
 	"time"
 )
 
 type Handler struct {
 	client              *redis.Client
 	executor            *lua.Executor
-	creator             leaf.Core
 	relationClient      relationRpc.RelationServiceClient
 	publicContentClient publicContentRpc.PublicContentServiceClient
+	cacheCreator        *bigcache.CacheCreator
 }
 
 func (h *Handler) Setup(_ sarama.ConsumerGroupSession) error {
@@ -36,7 +38,7 @@ func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
 
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := &mq.FeedListJson{}
+		message := &mq.FeedListKafkaJson{}
 		err := json.Unmarshal(msg.Value, message)
 		if err != nil {
 			slog.Error("unmarshal json:" + err.Error())
@@ -49,45 +51,34 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 	return nil
 }
 
-func (h *Handler) process(msg *mq.FeedListJson) {
-	var size int
-	if len(msg.List)%2000 == 0 {
-		size = len(msg.List) / 2000
-	} else {
-		size = len(msg.List)/2000 + 1
+func (h *Handler) process(msg *mq.FeedListKafkaJson) {
+	err := retry.Do(func() error {
+		return h.cacheCreator.Update(msg.List)
+	}, retry.Attempts(1000), retry.DelayType(retry.BackOffDelay), retry.MaxDelay(time.Second))
+
+	if err != nil {
+		panic(err.Error())
 	}
 
-	set := make(map[string][]interface{})
-	key := make([]string, size)
-	for i := 0; i < size; i++ {
-		key[i] = "BigSet:" + strconv.Itoa(i)
-		set["BigSet:"+strconv.Itoa(i)] = make([]interface{}, 0)
-	}
-	for i := 0; i < len(msg.List); i++ {
-		set[key[i%size]] = append(set[key[i%size]], strconv.FormatInt(msg.List[i], 10))
-	}
 	del, add := h.changeCompute(msg)
-	h.handleDel(del)
-	for i := 1; i <= 10; i++ {
-		err := h.updateRedis(set, key)
-		if err != nil && i != 10 {
-			time.Sleep(time.Millisecond * 100 * time.Duration(i*i))
-		} else if err != nil {
-			panic("update redis failed")
-		}
-	}
+	wa := sync.WaitGroup{}
+	wa.Add(2)
 	go func() {
+		h.handleAdd(add)
 		time.Sleep(time.Minute * 5)
 		h.handleAdd(add)
+		wa.Done()
 	}()
-
 	go func() {
+		h.handleDel(del)
 		time.Sleep(time.Minute * 5)
 		h.handleDel(del)
+		wa.Done()
 	}()
+	wa.Wait()
 }
 
-func (h *Handler) changeCompute(msg *mq.FeedListJson) (del []int64, add []int64) {
+func (h *Handler) changeCompute(msg *mq.FeedListKafkaJson) (del []int64, add []int64) {
 	set := make(map[int64]bool)
 	oSet := make(map[int64]bool)
 	for _, v := range msg.List {
@@ -217,52 +208,4 @@ func (h *Handler) handleAdd(add []int64) (failed []int64) {
 		cancel()
 	}
 	return failed
-}
-
-func (h *Handler) updateRedis(set map[string][]interface{}, key []string) error {
-
-	res := make(map[string]string)
-	var err error
-	res, err = h.client.HGetAll(context.Background(), "BigHash").Result()
-	if err != nil {
-		slog.Error("get hash err:" + err.Error())
-		return err
-	}
-
-	for _, v := range res {
-		err = h.client.Del(context.Background(), v).Err()
-		if err != nil {
-			slog.Error("del err:"+err.Error(), "key", v)
-			return err
-		}
-	}
-
-	for k, v := range set {
-		err = h.client.SAdd(context.Background(), k, v).Err()
-		if err != nil {
-			slog.Error("add err:"+err.Error(), "key", k)
-			return err
-		}
-	}
-
-	create := make([]string, len(key)*2)
-	for i := 0; i < len(create); i += 2 {
-		create[i] = key[i/2]
-		create[i+1] = key[i/2]
-	}
-	id, ok := h.creator.GetId()
-	if !ok {
-		err = errors.New("id creator is not available")
-		slog.Error(err.Error())
-		return err
-	}
-
-	create = append(create, "version", strconv.FormatInt(id, 10))
-	err = h.executor.Execute(context.Background(), luaHash.GetCreate(), []string{"BigHash", "true", "864000"}, create).Err()
-	if err != nil {
-		slog.Error("execute hash create:" + err.Error())
-		return err
-	}
-	// should check redis several minutes later
-	return nil
 }

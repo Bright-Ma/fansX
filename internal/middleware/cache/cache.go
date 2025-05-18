@@ -10,7 +10,7 @@ import (
 
 type Cache struct {
 	big    map[int64]bool
-	rmu    *sync.RWMutex
+	rmu    sync.RWMutex
 	client *etcd.Client
 }
 
@@ -18,6 +18,7 @@ func NewCache(client *etcd.Client) *Cache {
 	c := &Cache{
 		big:    make(map[int64]bool),
 		client: client,
+		rmu:    sync.RWMutex{},
 	}
 	go c.watch()
 	return nil

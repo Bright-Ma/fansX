@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fansX/internal/model/database"
+	leaf "fansX/pkg/leaf-go"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,7 @@ type CheckStrategy struct {
 }
 
 type PassStrategy struct {
+	creator leaf.Core
 }
 
 type DeleteStrategy struct {

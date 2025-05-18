@@ -6,8 +6,11 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/util"
 	"fansX/mq/content/script"
+	leaf "fansX/pkg/leaf-go"
+	"fansX/services/relation/relationservice"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/zrpc"
 	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -55,11 +58,29 @@ func main() {
 		panic(err.Error())
 	}
 
+	creator, err := leaf.NewCore(leaf.Config{
+		Model: leaf.Snowflake,
+		SnowflakeConfig: &leaf.SnowflakeConfig{
+			CreatorName: "publiccontent.kafka",
+			Addr:        "1jian10.cn:20000", //未生效
+			EtcdAddr:    []string{"1jian10.cn:4379"},
+		},
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	zClient := zrpc.MustNewClient(zrpc.RpcClientConf{Endpoints: []string{"1jian10.cn:4379"}})
+	relationClient := relationservice.NewRelationService(zClient)
+
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_content_public_group", config)
 	handler := Handler{
-		db:       db,
-		client:   client,
-		bigCache: cache,
+		db:             db,
+		client:         client,
+		bigCache:       cache,
+		creator:        creator,
+		executor:       executor,
+		relationClient: relationClient,
 	}
 
 	err = consumer.Consume(context.Background(), []string{"test_content_public"}, &handler)

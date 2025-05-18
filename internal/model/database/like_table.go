@@ -21,8 +21,7 @@ type LikeCount struct {
 	Id       int64 `gorm:"PRIMARY_KEY"`
 	Business int   `gorm:"not null;index:like,priority:10"`
 	LikeId   int64 `gorm:"not null;index:like,priority:20"`
-	Status   int64 `gorm:"not null;index:like,priority:30"`
-	Count    int64 `gorm:"not null;default:0"`
+	Count    int64 `gorm:"not null;index:like,priority:30;default:0"`
 }
 
 const (
@@ -36,7 +35,7 @@ const (
 )
 
 /*
-	以下弃用，原为聚合消息对账提供帮助
+	以下弃用
 */
 
 type TimeWindow struct {

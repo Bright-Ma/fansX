@@ -45,7 +45,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	e := lua.NewExecutor(client)
-	_, err = e.Load(context.Background(), []*lua.Script{script.BuildZSet})
+	_, err = e.Load(context.Background(), []*lua.Script{script.BuildZSet, script.RevByScore})
 	if err != nil {
 		panic(err.Error())
 	}
@@ -56,7 +56,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if err != nil {
 		panic(err.Error())
 	}
-	core, err := hotkey.NewCore("", eClient,
+	core, err := hotkey.NewCore("publiccontent.rpc", eClient,
 		hotkey.WithCacheSize(1024*1024*1024),
 		hotkey.WithChannelSize(1024*64),
 	)

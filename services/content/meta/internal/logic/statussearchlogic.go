@@ -40,7 +40,7 @@ func (l *StatusSearchLogic) StatusSearch(in *metaContentRpc.StatusSearchReq) (*m
 	err := db.Take(record, in.ContentId).Error
 	if err != nil {
 		logger.Error("search status err:" + err.Error())
-		return &metaContentRpc.StatusSearchResp{}, nil
+		return nil, err
 	}
 
 	if record.Userid != in.UserId {

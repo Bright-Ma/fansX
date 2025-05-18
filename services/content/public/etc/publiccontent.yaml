@@ -1,6 +1,16 @@
 Name: publiccontent.rpc
-ListenOn: 0.0.0.0:8080
+ListenOn: 0.0.0.0:23040
 Etcd:
   Hosts:
-  - 127.0.0.1:2379
+  - 127.0.0.1:4379
   Key: publiccontent.rpc
+Telemetry:
+  Name: publiccontent.rpc
+  EndPoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Catcher: jaeger
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 33040
+  Path: /metrics
