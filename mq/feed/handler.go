@@ -6,9 +6,8 @@ import (
 	"errors"
 	bigcache "fansX/internal/middleware/cache"
 	"fansX/internal/middleware/lua"
-	"fansX/internal/middleware/lua/script/hash"
 	"fansX/internal/model/mq"
-	"fansX/mq/feed/lua"
+	"fansX/mq/feed/script"
 	"fansX/services/content/public/proto/publicContentRpc"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/IBM/sarama"
@@ -70,8 +69,6 @@ func (h *Handler) process(msg *mq.FeedListKafkaJson) {
 		wa.Done()
 	}()
 	go func() {
-		h.handleDel(del)
-		time.Sleep(time.Minute * 5)
 		h.handleDel(del)
 		wa.Done()
 	}()
@@ -151,7 +148,7 @@ func (h *Handler) handleDel(del []int64) (failed []int64) {
 			} else if errors.Is(err, redis.Nil) {
 				continue
 			}
-			err = h.executor.Execute(timeout, interlua.GetAdd(), []string{"inbox:" + strconv.FormatInt(v, 10), "100"}, data).Err()
+			err = h.executor.Execute(timeout, script.ZSetAdd, []string{"inbox:" + strconv.FormatInt(v, 10), "100"}, data).Err()
 			if err != nil {
 				slog.Error("add content info to inbox:" + err.Error())
 			}

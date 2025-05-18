@@ -7,7 +7,7 @@ import (
 	"fansX/internal/util"
 	"fansX/mq/content/script"
 	leaf "fansX/pkg/leaf-go"
-	"fansX/services/relation/relationservice"
+	"fansX/services/relation/proto/relationRpc"
 	"github.com/IBM/sarama"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	zClient := zrpc.MustNewClient(zrpc.RpcClientConf{Endpoints: []string{"1jian10.cn:4379"}})
-	relationClient := relationservice.NewRelationService(zClient)
+	relationClient := relationRpc.NewRelationServiceClient(zClient.Conn())
 
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_content_public_group", config)
 	handler := Handler{

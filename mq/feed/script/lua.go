@@ -1,19 +1,11 @@
-package interlua
+package script
 
-type add struct {
-	name     string
-	function string
-}
+import "fansX/internal/middleware/lua"
 
-func (c *add) Name() string     { return c.name }
-func (c *add) Function() string { return c.function }
-
-var addScript *add
+var ZSetAdd *lua.Script
 
 func init() {
-	addScript = &add{}
-	addScript.name = "add"
-	addScript.function = `
+	ZSetAdd = lua.NewScript("ZSetAdd", `
 local key=KEYS[1]
 local ma=KEYS[2]
 local data=ARGV
@@ -30,14 +22,10 @@ end
 
 local nums=redis.call("ZCARD",key)
 if tonumber(ma)<tonumber(nums)
-    then 
+    then
     redis.call("ZREMRANGEBYRANK",key,0,tonumber(nums)-tonumber(ma)-1)
 end
 
 return true
-`
-}
-
-func GetAdd() *add {
-	return addScript
+`)
 }
