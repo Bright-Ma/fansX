@@ -1,6 +1,16 @@
 Name: like.rpc
-ListenOn: 0.0.0.0:8080
+ListenOn: 0.0.0.0:23060
 Etcd:
   Hosts:
-  - 127.0.0.1:2379
+  - 127.0.0.1:4379
   Key: like.rpc
+Telemetry:
+  Name: like.rpc
+  EndPoint: http://127.0.0.1:14268/api/traces
+  Sampler: 1.0
+  Catcher: jaeger
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 33060
+  Path: /metrics

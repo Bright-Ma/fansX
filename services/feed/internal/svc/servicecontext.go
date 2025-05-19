@@ -7,10 +7,12 @@ import (
 	"fansX/internal/util"
 	"fansX/services/content/public/proto/publicContentRpc"
 	"fansX/services/feed/internal/config"
+	"fansX/services/feed/internal/script"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/discov"
 	"github.com/zeromicro/go-zero/zrpc"
+	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
@@ -49,22 +51,29 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	e := lua.NewExecutor(r)
-	if err = e.LoadAll(); err != nil {
+	_, err = e.Load(context.Background(), []*lua.Script{
+		script.RangeByScore,
+		script.RevRange,
+	})
+	if err != nil {
 		panic(err.Error())
 	}
-
-	cache, err := bigcache.Init(r)
+	eClient, err := etcd.New(etcd.Config{
+		Endpoints: []string{"1jian10.cn:4379"},
+	})
 	if err != nil {
 		panic(err.Error())
 	}
 
-	conn := zrpc.MustNewClient(zrpc.RpcClientConf{
+	cache := bigcache.NewCache(eClient)
+
+	zClient := zrpc.MustNewClient(zrpc.RpcClientConf{
 		Etcd: discov.EtcdConf{
 			Hosts: []string{"127.0.0.1:4379"},
-			Key:   "relation.rpc",
 		},
 	})
-	relationClient := relationRpc.NewRelationServiceClient(conn.Conn())
+	relationClient := relationRpc.NewRelationServiceClient(zClient.Conn())
+	contentClient := publicContentRpc.NewPublicContentServiceClient(zClient.Conn())
 
 	svc := &ServiceContext{
 		Config:         c,
@@ -74,6 +83,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Executor:       e,
 		Cache:          cache,
 		RelationClient: relationClient,
+		ContentClient:  contentClient,
 	}
 
 	return svc

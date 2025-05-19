@@ -29,8 +29,7 @@ func (l *DelCommentLogic) DelComment(in *commentRpc.DelCommentReq) (*commentRpc.
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
 	producer := l.svcCtx.Producer
 	logger.Info("user del comment", "userId", in.UserId, "CommentId", in.CommentId)
-
-	msg := mq.DelCommentKafkaMsg{
+	msg := mq.DelCommentKafkaJson{
 		UserId:    in.UserId,
 		CommentId: in.CommentId,
 	}

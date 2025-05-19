@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fansX/internal/util"
 	"fansX/services/content/public/proto/publicContentRpc"
-	interlua "fansX/services/feed/internal/lua"
+	"fansX/services/feed/internal/script"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
@@ -57,7 +57,7 @@ func (l *PullLogic) Pull(in *feedRpc.PullReq) (*feedRpc.PullResp, error) {
 	set := make(map[[3]int64]bool)
 
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
-	inter, err := executor.Execute(timeout, interlua.GetRevByScoreScript(), []string{inbox}, 0, in.TimeStamp).Result()
+	inter, err := executor.Execute(timeout, script.RangeByScore, []string{inbox}, 0, in.TimeStamp).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 		logger.Error("get inbox:" + err.Error())
 		return nil, err

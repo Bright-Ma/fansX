@@ -14,21 +14,21 @@ import (
 
 type Consumer struct {
 	db       *gorm.DB
-	ch       chan *mq.Like
+	ch       chan *mq.LikeKafkaJson
 	close    chan bool
 	change   map[[2]int64]int64
 	executor *lua.Executor
 }
 
 func NewConsumer(db *gorm.DB) *Consumer {
-	ch := make(chan *mq.Like, 1024*1024)
+	ch := make(chan *mq.LikeKafkaJson, 1024*1024)
 	return &Consumer{
 		db: db,
 		ch: ch,
 	}
 }
 
-func (c *Consumer) Send(like *mq.Like) {
+func (c *Consumer) Send(like *mq.LikeKafkaJson) {
 	c.ch <- like
 }
 

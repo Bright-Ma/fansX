@@ -39,7 +39,7 @@ func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
 
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := &mq.Like{}
+		message := &mq.LikeKafkaJson{}
 		err := json.Unmarshal(msg.Value, message)
 		if err != nil {
 			slog.Error("unmarshal json:" + err.Error())
@@ -58,7 +58,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 	return nil
 }
 
-func (h *Handler) process(message *mq.Like) (bool, error) {
+func (h *Handler) process(message *mq.LikeKafkaJson) (bool, error) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
@@ -99,7 +99,7 @@ func (h *Handler) process(message *mq.Like) (bool, error) {
 
 }
 
-func (h *Handler) CreateRecord(timeout context.Context, message *mq.Like, tx *gorm.DB, status int) error {
+func (h *Handler) CreateRecord(timeout context.Context, message *mq.LikeKafkaJson, tx *gorm.DB, status int) error {
 
 	creator := h.creator
 	var id int64
@@ -139,7 +139,7 @@ func (h *Handler) CreateRecord(timeout context.Context, message *mq.Like, tx *go
 	return nil
 }
 
-func (h *Handler) UpdateRedis(message *mq.Like) {
+func (h *Handler) UpdateRedis(message *mq.LikeKafkaJson) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 

@@ -35,7 +35,7 @@ func (l *LikeLogic) Like(in *likeRpc.LikeReq) (*likeRpc.Empty, error) {
 	defer cancel()
 
 	logger.Info("user like", "business", in.BusinessId, "userid", in.UserId, "likeId", in.LikeId, "timestamp", in.TimeStamp)
-	msg := mq.Like{
+	msg := mq.LikeKafkaJson{
 		TimeStamp: in.TimeStamp,
 		Business:  in.BusinessId,
 		UserId:    in.UserId,

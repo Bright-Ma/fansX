@@ -32,7 +32,7 @@ func (l *CancelLikeLogic) CancelLike(in *likeRpc.CancelLikeReq) (*likeRpc.Empty,
 	timeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 	logger := util.SetTrace(l.ctx, l.svcCtx.Logger)
-	msg := &mq.Like{
+	msg := mq.LikeKafkaJson{
 		TimeStamp: in.TimeStamp,
 		Business:  in.BusinessId,
 		UserId:    in.UserId,

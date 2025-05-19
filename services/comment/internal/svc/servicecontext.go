@@ -1,22 +1,27 @@
 package svc
 
 import (
+	"context"
 	"encoding/json"
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
+	"fansX/internal/util"
 	"fansX/pkg/hotkey-go/hotkey"
 	leaf "fansX/pkg/leaf-go"
 	syncx "fansX/pkg/sync"
 	"fansX/services/comment/internal/config"
+	"fansX/services/comment/internal/script"
 	"fansX/services/comment/proto/commentRpc"
 	"github.com/IBM/sarama"
 	"github.com/golang/groupcache/singleflight"
 	"github.com/redis/go-redis/v9"
 	etcd "go.etcd.io/etcd/client/v3"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ServiceContext struct {
@@ -30,36 +35,99 @@ type ServiceContext struct {
 	Cache    *hotkey.Core
 	Sync     *syncx.Sync
 	Group    *singleflight.Group
+	ch       chan string
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	hot := make(chan string, 1024*100)
-	cache, err := hotkey.NewCore(hotkey.Config{
-		Model:        hotkey.ModelCache,
-		GroupName:    "",
-		DelGroupName: "",
-		CacheSize:    0,
-		HotKeySize:   0,
-		EtcdConfig:   etcd.Config{},
-		HotChan:      hot,
+	svc := &ServiceContext{
+		Config: c,
+		ch:     make(chan string, 1024*64),
+	}
+	dsn := "root:@tcp(linux.1jian10.cn:4000)/test?charset=utf8mb4&parseTime=True"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.DB = db
+
+	rClient := redis.NewClient(&redis.Options{
+		Addr: "1jian10.cn:6379",
+		DB:   0,
+	})
+	if err := rClient.Ping(context.Background()).Err(); err != nil {
+		panic(err.Error())
+	}
+	svc.Client = rClient
+
+	eClient, err := etcd.New(etcd.Config{
+		Endpoints:   []string{"1jian10.cn:4379"},
+		DialTimeout: time.Second * 3,
 	})
 	if err != nil {
 		panic(err.Error())
 	}
 
-	svc := &ServiceContext{
-		Config: c,
-		Cache:  cache,
+	cache, err := hotkey.NewCore("", eClient,
+		hotkey.WithCacheSize(1024*1024*1024),
+		hotkey.WithChannelSize(1024*32),
+		hotkey.WithObserver(svc),
+	)
+	if err != nil {
+		panic(err.Error())
 	}
-	go svc.addCache(hot)
+	svc.Cache = cache
+
+	logger, err := util.InitLog("comment.rpc", slog.LevelDebug)
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.Logger = logger
+
+	sync, err := syncx.NewSync(rClient)
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.Sync = sync
+	executor := lua.NewExecutor(rClient)
+	_, err = executor.Load(context.Background(), []*lua.Script{
+		script.Build,
+		script.GetCountScript,
+		script.GetByTime,
+		script.GetByHot,
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.Executor = executor
+	creator, err := leaf.NewCore(leaf.Config{
+		Model: leaf.Snowflake,
+		SnowflakeConfig: &leaf.SnowflakeConfig{
+			CreatorName: "comment.rpc",
+			Addr:        "1jian10.cn:23060",
+			EtcdAddr:    []string{"1jian10.cn:4379"},
+		},
+	})
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.Creator = creator
+	kafkaConfig := sarama.NewConfig()
+
+	producer, err := sarama.NewSyncProducer([]string{"1jian10.cn:"}, kafkaConfig)
+	if err != nil {
+		panic(err.Error())
+	}
+	svc.Producer = producer
+
+	go svc.addCache()
 
 	return svc
 }
 
-func (svc *ServiceContext) addCache(ch chan string) {
+func (svc *ServiceContext) addCache() {
 	db := svc.DB
 	cache := svc.Cache
-	for key := range ch {
+	for key := range svc.ch {
 		if strings.HasPrefix(key, "CommentListByHot:") {
 			svc.addHot(key, db, cache)
 		} else {
@@ -141,4 +209,8 @@ func (svc *ServiceContext) addTime(key string, db *gorm.DB, cache *hotkey.Core) 
 	cache.Set(key, b, 15)
 	return
 
+}
+
+func (svc *ServiceContext) Do(key string) {
+	svc.ch <- key
 }

@@ -43,7 +43,7 @@ func (l *CommentLogic) Comment(in *commentRpc.CommentReq) (*commentRpc.Empty, er
 		logger.Error("get id:" + err.Error())
 		return nil, err
 	}
-	msg := mq.CommentKafkaMsg{
+	msg := mq.CommentKafkaJson{
 		Id:          id,
 		UserId:      in.UserId,
 		ContentId:   in.ContentId,

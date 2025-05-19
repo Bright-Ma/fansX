@@ -5,11 +5,10 @@ import (
 	"errors"
 	bigcache "fansX/internal/middleware/cache"
 	"fansX/internal/middleware/lua"
-	"fansX/internal/middleware/lua/script/zset"
 	"fansX/internal/util"
 	heapx "fansX/pkg/heap"
 	"fansX/services/content/public/proto/publicContentRpc"
-	interlua "fansX/services/feed/internal/lua"
+	"fansX/services/feed/internal/script"
 	"fansX/services/relation/proto/relationRpc"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
@@ -61,7 +60,7 @@ func (l *PullLatestLogic) PullLatest(in *feedRpc.PullLatestReq) (*feedRpc.PullRe
 	set := make(map[[3]int64]bool)
 	inbox := "inbox:" + strconv.FormatInt(in.UserId, 10)
 
-	inter, err := executor.Execute(timeout, interlua.GetRevRangeScript(), []string{inbox}, in.Limit).Result()
+	inter, err := executor.Execute(timeout, script.RevRange, []string{inbox}, in.Limit).Result()
 	if err != nil && !errors.Is(err, redis.Nil) {
 
 		logger.Error("get inbox:" + err.Error())
@@ -186,7 +185,7 @@ func searchAll(arguments ...interface{}) error {
 		argv[i+1] = strconv.FormatInt(item[0], 10) + ";" + strconv.FormatInt(item[1], 10)
 	}
 
-	err := executor.Execute(ctx, luaZset.GetCreate(), []string{"inbox:" + strconv.FormatInt(userId, 10), "false", "864000"}, argv).Err()
+	err := executor.Execute(ctx, script.BuildZSet, []string{"inbox:" + strconv.FormatInt(userId, 10), "false", "864000"}, argv).Err()
 	if err != nil {
 		logger.Error("execute create ZSet:" + err.Error())
 	}

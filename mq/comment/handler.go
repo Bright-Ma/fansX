@@ -38,7 +38,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 func (h *Handler) CommentHandler(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	consumer := NewConsumer(h.db, h.client)
 	for msg := range claim.Messages() {
-		message := mq.CommentKafkaMsg{}
+		message := mq.CommentKafkaJson{}
 		_ = json.Unmarshal(msg.Value, &message)
 		record := database.Comment{
 			Id:          message.Id,
@@ -60,7 +60,7 @@ func (h *Handler) CommentHandler(session sarama.ConsumerGroupSession, claim sara
 
 func (h *Handler) DelHandler(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		message := mq.DelCommentKafkaMsg{}
+		message := mq.DelCommentKafkaJson{}
 		_ = json.Unmarshal(msg.Value, &message)
 		err := h.DelComment(&message)
 		if err != nil {
@@ -71,7 +71,7 @@ func (h *Handler) DelHandler(session sarama.ConsumerGroupSession, claim sarama.C
 	return nil
 }
 
-func (h *Handler) DelComment(message *mq.DelCommentKafkaMsg) error {
+func (h *Handler) DelComment(message *mq.DelCommentKafkaJson) error {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	tx := h.db.WithContext(timeout)
