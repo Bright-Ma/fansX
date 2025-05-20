@@ -8,6 +8,7 @@ import (
 	"fansX/services/content/public/internal/config"
 	"fansX/services/content/public/internal/script"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/logx"
 	etcd "go.etcd.io/etcd/client/v3"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -64,6 +65,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(err.Error())
 	}
 
+	logx.DisableStat()
 	return &ServiceContext{
 		Config:   c,
 		Core:     core,

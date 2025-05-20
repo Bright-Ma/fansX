@@ -23,12 +23,18 @@ type CommentCount struct {
 	Id       int64 `gorm:"not null;PRIMARY_KEY"`
 	Business int   `gorm:"not null;index:count,priority:10"`
 	CountId  int64 `gorm:"not null;index:count,priority:20"`
-	Count    int64 `gorm:"not null;"`
+	Status   int   `gorm:"not null;index:count,priority:30"`
+	Count    int64 `gorm:"not null;index:count,priority:40"`
 }
 
 const (
 	CommentStatusCommon = 1
 	CommentStatusDelete = 2
+)
+
+const (
+	CommentCountStatusCommon = 1
+	CommentCountStatusDelete = 2
 )
 
 // comment幂等控制

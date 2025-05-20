@@ -25,7 +25,7 @@ func (h *Handler) Cleanup(_ sarama.ConsumerGroupSession) error {
 func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	db := h.db
 	for msg := range claim.Messages() {
-		count := mq.LikeCountJson{}
+		count := mq.LikeCountCdcJson{}
 		err := json.Unmarshal(msg.Value, &count)
 		if err != nil {
 			slog.Error("unmarshal json to CommentCount:" + err.Error())

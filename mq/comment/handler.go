@@ -36,7 +36,7 @@ func (h *Handler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama
 }
 
 func (h *Handler) CommentHandler(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	consumer := NewConsumer(h.db, h.client)
+	consumer := NewConsumer(h.db)
 	for msg := range claim.Messages() {
 		message := mq.CommentKafkaJson{}
 		_ = json.Unmarshal(msg.Value, &message)

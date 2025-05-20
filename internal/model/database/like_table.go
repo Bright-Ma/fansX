@@ -21,7 +21,8 @@ type LikeCount struct {
 	Id       int64 `gorm:"PRIMARY_KEY"`
 	Business int   `gorm:"not null;index:like,priority:10"`
 	LikeId   int64 `gorm:"not null;index:like,priority:20"`
-	Count    int64 `gorm:"not null;index:like,priority:30;default:0"`
+	Status   int   `gorm:"not null;index:like,priority:30"`
+	Count    int64 `gorm:"not null;index:like,priority:40;default:0"`
 }
 
 const (
@@ -32,6 +33,11 @@ const (
 const (
 	LikeStatusLike   = 1
 	LikeStatusUnlike = 0
+)
+
+const (
+	LikeCountStatusCommon = 1
+	LikeCountStatusDelete = 2
 )
 
 /*

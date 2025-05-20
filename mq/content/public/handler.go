@@ -15,6 +15,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"log/slog"
 	"strconv"
 	"time"
@@ -154,7 +155,7 @@ func (h *Handler) LinkLike(record *database.VisibleContentInfo) error {
 	defer cancel()
 
 	tx := h.db.WithContext(timeout).Begin()
-	err := tx.Where("business = ? and like_id = ?", database.BusinessContent, record.Id).Take(&database.LikeCount{}).Error
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("business = ? and like_id = ?", database.BusinessContent, record.Id).Take(&database.LikeCount{}).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		slog.Error("get like count record failed:" + err.Error())
 		tx.Commit()
@@ -174,6 +175,7 @@ func (h *Handler) LinkLike(record *database.VisibleContentInfo) error {
 		Id:       id,
 		Business: database.BusinessContent,
 		LikeId:   record.Id,
+		Status:   database.LikeCountStatusCommon,
 		Count:    0,
 	}).Error
 	if err != nil {
@@ -191,13 +193,14 @@ func (h *Handler) LinkComment(record *database.VisibleContentInfo) error {
 	defer cancel()
 
 	tx := h.db.WithContext(timeout).Begin()
-	err := tx.Where("business = ? and count_id = ?", database.BusinessContent, record.Id).Take(&database.CommentCount{}).Error
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("business = ? and count_id = ?", database.BusinessContent, record.Id).Take(&database.CommentCount{}).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		slog.Error("get comment count record failed:" + err.Error())
 		tx.Commit()
 		return err
 	} else if err == nil {
 		slog.Info("comment count record have been created")
+		tx.Commit()
 		return nil
 	}
 	id, err := h.creator.GetIdWithContext(timeout)
@@ -229,7 +232,7 @@ func (h *Handler) UnLinkComment(record *database.VisibleContentInfo) error {
 	tx := h.db.WithContext(timeout).Begin()
 	slog.Info("unlink comment count")
 
-	err := tx.Where("business = ? and count_id = ?", database.BusinessComment, record.Id).Delete(&database.CommentCount{}).Error
+	err := tx.Where("business = ? and count_id = ?", database.BusinessComment, record.Id).Update("status", database.CommentCountStatusDelete).Error
 	if err != nil {
 		tx.Rollback()
 		slog.Error("delete comment count failed:" + err.Error())
@@ -245,7 +248,7 @@ func (h *Handler) UnLinkLike(record *database.VisibleContentInfo) error {
 	tx := h.db.WithContext(timeout).Begin()
 	slog.Info("unlink like count")
 
-	err := tx.Where("business = ? and like_id = ?", database.BusinessComment, record.Id).Delete(&database.LikeCount{}).Error
+	err := tx.Where("business = ? and like_id = ?", database.BusinessComment, record.Id).Update("status", database.CommentCountStatusDelete).Error
 	if err != nil {
 		tx.Rollback()
 		slog.Error("delete like count failed:" + err.Error())

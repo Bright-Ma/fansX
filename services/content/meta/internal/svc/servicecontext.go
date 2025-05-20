@@ -4,6 +4,7 @@ import (
 	"fansX/internal/util"
 	leaf "fansX/pkg/leaf-go"
 	"fansX/services/content/meta/internal/config"
+	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log/slog"
@@ -46,6 +47,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Logger:  logger,
 		Creator: creator,
 	}
-
+	logx.DisableStat()
 	return svc
 }

@@ -123,15 +123,17 @@ func (s *PassStrategy) Handle(ctx context.Context, db *gorm.DB, record *database
 
 func (s *DeleteStrategy) Handle(ctx context.Context, db *gorm.DB, record *database.InvisibleContentInfo) error {
 	tx := db.WithContext(ctx).Begin()
-
-	err := tx.Take(&database.VisibleContentInfo{}, record.Id).
-		Update("status", database.ContentStatusDelete).Update("version", record.Version).Error
+	err := tx.Take(&database.VisibleContentInfo{}, record.Id).Updates(map[string]interface{}{
+		"status":  database.ContentStatusDelete,
+		"version": record.Version,
+	}).Error
 	if err != nil {
 		slog.Error("set visible status to delete:" + err.Error())
 		tx.Rollback()
 		return err
 	}
-
+	slog.Debug("delete visible content info success")
+	tx.Commit()
 	return nil
 }
 

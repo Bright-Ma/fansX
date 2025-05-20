@@ -6,7 +6,6 @@ import (
 	"fansX/internal/middleware/lua"
 	"fansX/internal/model/database"
 	"fansX/mq/comment/script"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
 	"strconv"
@@ -22,7 +21,7 @@ type Consumer struct {
 	commentCount map[[2]int64]int64
 }
 
-func NewConsumer(db *gorm.DB, client *redis.Client) *Consumer {
+func NewConsumer(db *gorm.DB) *Consumer {
 	ch := make(chan *database.Comment, 1024*1024)
 	return &Consumer{
 		db:    db,

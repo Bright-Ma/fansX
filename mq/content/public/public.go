@@ -70,7 +70,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	zClient := zrpc.MustNewClient(zrpc.RpcClientConf{Endpoints: []string{"1jian10.cn:4379"}})
+	zClient := zrpc.MustNewClient(zrpc.NewEtcdClientConf([]string{"1jian10.cn:4379"}, "relation.rpc", "", ""))
 	relationClient := relationRpc.NewRelationServiceClient(zClient.Conn())
 
 	consumer, _ := sarama.NewConsumerGroup([]string{"1jian10.cn:9094"}, "test_content_public_group", config)
