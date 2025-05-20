@@ -102,6 +102,7 @@ func Translate(message *mq.PublicContentCdcJson) *database.VisibleContentInfo {
 
 }
 
+// ToDo
 func (h *Handler) handleDelete(record *database.VisibleContentInfo) error {
 	h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
 	if err := h.UnLinkLike(record); err != nil {
@@ -109,6 +110,32 @@ func (h *Handler) handleDelete(record *database.VisibleContentInfo) error {
 	}
 	if err := h.UnLinkComment(record); err != nil {
 		return err
+	}
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	if h.bigCache.IsBig(record.Userid) {
+		h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
+		slog.Info("is big user just update cache")
+		return nil
+	} else {
+		listResp, err := h.relationClient.ListFollowing(timeout, &relationRpc.ListFollowingReq{
+			UserId: record.Userid,
+			All:    true,
+		})
+		if err != nil {
+			slog.Error("get list following failed:" + err.Error())
+			return err
+		}
+		member := strconv.FormatInt(record.Userid, 10) + ";" + strconv.FormatInt(record.Id, 10)
+		for _, id := range listResp.UserId {
+			key := "inbox:" + strconv.FormatInt(id, 10)
+			err = h.executor.Execute(timeout, script.RemoveZSet, []string{key}, member).Err()
+			if err != nil {
+				slog.Error("del message in user inbox:" + err.Error())
+				continue
+			}
+		}
+
 	}
 	return nil
 }
@@ -124,7 +151,7 @@ func (h *Handler) handleInsert(record *database.VisibleContentInfo) error {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	if is {
-		h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
+		h.client.Del(timeout, "ContentList:"+strconv.FormatInt(record.Id, 10))
 		slog.Info("is big user just update cache")
 		return nil
 	} else {

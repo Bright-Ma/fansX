@@ -30,3 +30,10 @@ return true
 
 `)
 }
+
+var RemoveZSet *lua.Script
+
+func init() {
+	RemoveZSet = lua.NewScript("RemoveZSet", `
+`)
+}
