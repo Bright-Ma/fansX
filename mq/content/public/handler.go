@@ -102,7 +102,6 @@ func Translate(message *mq.PublicContentCdcJson) *database.VisibleContentInfo {
 
 }
 
-// ToDo
 func (h *Handler) handleDelete(record *database.VisibleContentInfo) error {
 	h.client.Del(context.Background(), "ContentList:"+strconv.FormatInt(record.Id, 10))
 	if err := h.UnLinkLike(record); err != nil {
