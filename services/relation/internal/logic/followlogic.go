@@ -28,6 +28,10 @@ func NewFollowLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FollowLogi
 	}
 }
 
+func Read() (interface{}, error) {
+	return nil, nil
+}
+
 func (l *FollowLogic) Follow(in *relationRpc.FollowReq) (*relationRpc.Empty, error) {
 	db := l.svcCtx.DB
 	creator := l.svcCtx.Creator
